@@ -1,23 +1,37 @@
-# HILFU FC v8.3 — 로그인 없이 공식 팀 보드 열람
+# HILFU FC v8.4 — 경기 이력 · 자동 백업 · 복원
 
-## 운영 방식
-- **일반 방문자:** 웹주소 접속 시 공식 팀 보드를 자동으로 불러옵니다. Google 로그인이 필요 없으며 열람 전용입니다. Firebase에서 실시간 갱신됩니다.
-- **감독:** 기존 Google 계정으로 로그인하면 공식 보드 수정 및 코치 편집 권한 관리가 가능합니다.
-- **승인된 코치:** 등록된 Google 계정으로 로그인하면 공식 보드를 수정할 수 있습니다.
-- **개인 보드:** 감독/코치의 개인 동기화와 공식↔개인 복사 기능은 기존대로 유지합니다.
-- 선수명단 포지션 수정, 동기화 표시, 17개 포메이션, PNG, 참석명단 OCR 등 기존 기능을 유지합니다.
+v8.3의 공개 열람/Google 로그인 승인 편집, 선수 포지션, 17개 포메이션, 출전시간, 전술판, OCR, 개인↔공식 복사 기능을 유지합니다.
 
-## 배포
-- GitHub의 `index.html`, `firebase-sync.js`, `firestore.rules`, `README.md`가 v8.3으로 업데이트되어도 Firebase에는 보안 규칙이 자동 적용되지 않습니다.
-- Firebase Console → Firestore Database → 규칙에서 **기존에 게시된 규칙**을 유지하면서 다음 조건만 변경하고 **게시**합니다.
-  - 기존: `allow get: if teamId == 'official' && request.auth != null;`
-  - 변경: `allow get: if teamId == 'official';`
-- **주의:** Firebase 콘솔에 이미 설정된 감독 UID를 변경하거나 `PASTE_OWNER_UID_HERE`로 되돌리지 마세요. GitHub의 `firestore.rules`는 UID를 치환하기 전 템플릿입니다.
-- Firebase Authentication Google 로그인 공급자와 GitHub Pages 인증 허용 도메인 설정은 그대로 유지합니다.
-- `firebase-config.js` 및 기존 데이터, Firestore 컬렉션 경로는 변경하지 않습니다.
+## v8.4 기능
+- **과거 경기 열람:** `지난 경기`에서 저장된 경기를 누구나 로그인 없이 읽기 전용으로 열람합니다. 공식 현재 경기로 언제든지 돌아올 수 있습니다.
+- **새 경기:** 감독/승인 코치가 새 경기를 만들 때 **현재 공식 경기 데이터를 먼저 불변 이력으로 보관**합니다. 선수 기본 정보와 가능 포지션, 각 쿼터 포메이션은 유지하고 참석 체크, 5쿼터 배치, 전술 보드/메모를 초기화합니다. 데이터 보관과 공식 보드 갱신은 하나의 Firestore 트랜잭션으로 처리됩니다.
+- **자동 백업:** 공식 팀 보드의 수정, 개인→공식 복사, 새 경기 시작, 복원 시 변경 **직전** 내용을 Firestore의 최근 10개 순환 슬롯에 저장합니다. 백업은 수정 권한 있는 사용자만 볼 수 있습니다.
+- **복원:** 경기 이력 또는 최근 백업을 선택하여 기존 현재 공식 상태로 복원할 수 있습니다. 복원 전 현재 내용도 다시 자동 백업되며 2중 확인과 수정번호 충돌 검사를 거칩니다.
+- **동기화 표시:** 비로그인 공개 보드의 상단 연결 표시가 `미연결`이라고 혼동을 주던 현상을 수정합니다.
 
-## 보안
-- 공식 자료 `hilfuTeams/official`의 단일 문서 조회만 공개됩니다. 이 데이터는 링크를 모르는 외부인도 API를 통해 열람할 수 있습니다.
-- `hilfuStates/{uid}` 개인 데이터는 소유자만 읽고 쓸 수 있으며, 공식 보드 쓰기는 감독 또는 편집자로 등록된 코치만 가능합니다.
-- `hilfuTeamAccess/official`의 편집자 목록은 여전히 제한적으로 열람됩니다.
-- Firebase 실제 서비스에서 익명 브라우저로 열람 및 로그인한 코치 수정 테스트가 필요합니다.
+## 데이터 저장 경로
+- 현재 공식: `hilfuTeams/official` (기존 경로 유지)
+- 개인: `hilfuStates/{uid}` (기존 경로 유지)
+- 경기 이력: `hilfuMatchArchive/{archiveId}` (공개 조회, 승인 편집자만 생성, 불변 기록)
+- 최근 백업: `hilfuTeamBackups/slot0`~`slot9` (감독·승인 코치만 접근)
+- 코치 권한: `hilfuTeamAccess/official` (기존 권한 유지)
+
+## 반드시 수행: Firebase 보안 규칙 게시
+
+**GitHub의 `firestore.rules`를 바꿔도 Firebase 운영 서버의 규칙은 자동 갱신되지 않습니다.**
+
+1. Firebase Console → Firestore Database → **규칙(Rules)** 메뉴를 엽니다.
+2. 이미 Firebase 콘솔에 게시한 **기존 규칙 전체를 유지**합니다. 특히 실제 감독 UID를 `PASTE_OWNER_UID_HERE`로 되돌리지 마세요.
+3. GitHub 저장소의 [firestore.rules](https://github.com/skyfiow1-collab/hilfu-fc/blob/main/firestore.rules)에서 `match /hilfuMatchArchive/{matchId}`와 `match /hilfuTeamBackups/{backupId}` 두 블록을 복사하여 마지막 `match /{document=**}` **앞에 추가**합니다.
+4. `hilfuTeams/{teamId}`의 `allow get: if teamId == 'official';` (v8.3 공개 조회 규칙) 및 기존 수정·권한 체크는 그대로 유지합니다.
+5. Firebase Console의 **게시(Publish)**를 누릅니다. 게시하지 않으면 새 경기 보관/백업/복원/과거 경기 조회에 `permission-denied`가 발생할 수 있습니다.
+
+## 운영 권장 사항
+- 첫 새 경기 시작 전 감독이 공식 데이터 JSON 백업을 한 번 수동 다운로드해 두세요.
+- 새 경기 생성은 이전 경기 이력을 영구 보존하지만 자동 백업은 최근 **10번의 공식 보드 수정 이전 상태**만 보관합니다. 오래된 백업을 보존하려면 JSON 파일로 다운로드해 두세요.
+- 첫 배포 후 감독 로그인 → 지난 경기 목록 확인 → 새 경기 테스트 → 보관된 경기 열람 → 복원까지 순서대로 확인합니다.
+- 기존 Firebase 문서나 선수 데이터는 마이그레이션 또는 초기화하지 않습니다.
+- Firestore 데이터가 공개되는 경로는 공식 팀 보드와 **경기 이력 전체**입니다. 개인 보드 및 최근 백업은 공개되지 않습니다.
+
+## 주의
+기존 공식 보드의 경기 날짜/이름 필드는 처음에는 없을 수 있습니다. 첫 `새 경기`에서 보관 이름을 직접 입력하면 됩니다. 이전 경기로 돌아가려면 `현재 경기로`를 선택합니다. 다른 편집자가 변경한 경우 트랜잭션에서 안전하게 중단하며 강제 덮어쓰지 않습니다.

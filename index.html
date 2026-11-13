@@ -352,7 +352,7 @@
     if(official&&state.match?.title&&!window.HILFU_TEAM?.isHistoryMode?.()) $('boardModeDescription').textContent+=(' · 현재 경기: '+(state.match.date?state.match.date+' ':'')+state.match.title);
     const signedIn=Boolean(window.HILFU_AUTH?.isSignedIn());
     $('boardModeOpen').textContent=official?'개인 보드로 돌아가기':'공식 팀 보드 열기';
-    $('boardModeOpen').hidden=official&&!signedIn;
+    $('boardModeOpen').hidden=(official&&!signedIn)||Boolean(window.HILFU_TEAM?.isHistoryMode?.());
     $('boardEditLogin').hidden=!(official&&ro&&!signedIn);
     const history=Boolean(window.HILFU_TEAM?.isHistoryMode?.());
     $('boardHistoryBtn').hidden=!official;

@@ -280,6 +280,8 @@
     s.positions = Array.from({length:5},(_,i)=>s.positions?.[i] && typeof s.positions[i]==='object' && !Array.isArray(s.positions[i]) ? s.positions[i]:{});
     s.quarter = Math.max(0,Math.min(4,Number(s.quarter)||0));
     s.tactics = Array.from({length:5},(_,i)=>{const t=s.tactics?.[i];return t&&typeof t==='object'&&!Array.isArray(t)?{opponentFormation:FORMATIONS[t.opponentFormation]?t.opponentFormation:'442',ownPositions:t.ownPositions&&typeof t.ownPositions==='object'?t.ownPositions:{},opponentPositions:t.opponentPositions&&typeof t.opponentPositions==='object'?t.opponentPositions:{},opponentLabels:t.opponentLabels&&typeof t.opponentLabels==='object'?t.opponentLabels:{},arrows:Array.isArray(t.arrows)?t.arrows.filter(a=>a&&['pass','run','press'].includes(a.type)&&['x1','y1','x2','y2'].every(k=>Number.isFinite(Number(a[k])))).map(a=>({type:a.type,x1:Number(a.x1),y1:Number(a.y1),x2:Number(a.x2),y2:Number(a.y2)})):[],note:typeof t.note==='string'?t.note:''}:{opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''};});
+    if(s.match!==undefined && (!s.match || typeof s.match!=='object')) delete s.match;
+    if(s.match){s.match={date:typeof s.match.date==='string'?s.match.date.slice(0,10):'',title:typeof s.match.title==='string'?s.match.title.slice(0,80):'자체전'};}
     s.tab = ['lineup','tactics','roster','stats'].includes(s.tab)?s.tab:'lineup';
     s.players.forEach(p=>{p.roles=cleanRoles(p.roles);p.gkEligible=typeof p.gkEligible==='boolean'?p.gkEligible:DEFAULT_GK.has(p.name);p.active=Boolean(p.active);});
     return s;
@@ -294,6 +296,13 @@
   const syncUiLabels={local:'기기 저장',idle:'대기 중',pending:'저장 대기',saving:'서버 저장 중',saved:'저장 완료',synced:'실시간 동기화',error:'저장/연결 오류'};
   function renderLiveSync(){
     const status=syncUiStatus[dataMode]||syncUiStatus.personal,bar=$('syncLiveBar');
+    if(dataMode==='team'&&window.HILFU_TEAM?.isHistoryMode?.()){
+      bar.dataset.phase='synced';
+      $('syncLiveTitle').textContent='이전 경기 · 열람 전용';
+      $('syncLiveDetail').textContent='보관된 경기입니다. 현재 공식 팀 데이터는 변경되지 않습니다.';
+      $('syncLiveTime').textContent='';
+      return;
+    }
     bar.dataset.phase=status.phase;
     $('syncLiveTitle').textContent=(dataMode==='team'?'공식 · ':'개인 · ')+(syncUiLabels[status.phase]||'상태 확인');
     $('syncLiveDetail').textContent=status.message;
@@ -312,7 +321,7 @@
   const currentFormation = () => FORMATIONS[state.formations[state.quarter]];
   const currentSlots = () => currentFormation().slots;
   const name = id => state.players.find(p=>p.id===id)?.name||'미등록 선수';
-  function syncedData(){return JSON.parse(JSON.stringify({players:state.players,lineups:state.lineups,formations:state.formations,positions:state.positions,tactics:state.tactics}));}
+  function syncedData(){return JSON.parse(JSON.stringify({players:state.players,lineups:state.lineups,formations:state.formations,positions:state.positions,tactics:state.tactics,...(state.match?{match:state.match}:{})}));}
   let lastRenderedDataSignature=JSON.stringify(syncedData());
   function save(fromCloud=false){
     const data=syncedData(),sig=JSON.stringify(data);
@@ -340,6 +349,7 @@
     const official=dataMode==='team',ro=official&&!teamCanEdit;
     $('boardModeTitle').textContent=official?(ro?'👀 공식 팀 보드 · 열람 전용':'✍️ 공식 팀 보드 · 편집 가능'):'👤 개인 보드';
     $('boardModeDescription').textContent=official?(ro?'팀원에게 공유되는 공식 자료입니다. 지정된 감독·코치만 수정할 수 있습니다.':'변경사항이 팀 전체 공식 보드에 자동 반영됩니다.'):'내 개인 편집 공간입니다. 공식 팀에 올리기 전까지 팀원에게 보이지 않습니다.';
+    if(official&&state.match?.title&&!window.HILFU_TEAM?.isHistoryMode?.()) $('boardModeDescription').textContent+=(' · 현재 경기: '+(state.match.date?state.match.date+' ':'')+state.match.title);
     const signedIn=Boolean(window.HILFU_AUTH?.isSignedIn());
     $('boardModeOpen').textContent=official?'개인 보드로 돌아가기':'공식 팀 보드 열기';
     $('boardModeOpen').hidden=official&&!signedIn;
@@ -368,6 +378,17 @@
   }
   window.HILFU_APP = {
     getData:syncedData,
+    createNewMatchData(date,title){
+      const old=syncedData();
+      return {
+        players:old.players.map(p=>({...p,active:false})),
+        lineups:Array.from({length:5},()=>({})),
+        formations:[...old.formations],
+        positions:Array.from({length:5},()=>({})),
+        tactics:Array.from({length:5},()=>({opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''})),
+        match:{date,title}
+      };
+    },
     refreshBoardHeader:applyViewPermission,
     isTeamMode:()=>dataMode==='team',
     isTeamEditor:()=>dataMode==='team'&&teamCanEdit,

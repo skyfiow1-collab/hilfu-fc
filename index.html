@@ -316,6 +316,21 @@
       lineups:Array.from({length:5},()=>({})),formations:Array(5).fill('433'),positions:Array.from({length:5},()=>({})),
       tactics:Array.from({length:5},()=>({opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''})),quarter:0,tab:'lineup'};
   }
+  const blankScore=()=>({mode:'quarters',quarters:Array.from({length:5},()=>({us:null,them:null})),final:{us:null,them:null}});
+  const cleanGoal=v=>{
+    if(v===null||v===undefined||v==='')return null;
+    const n=Number(v);return Number.isInteger(n)&&n>=0&&n<=99?n:null;
+  };
+  function cleanScore(data){
+    const base=blankScore();
+    if(!data||typeof data!=='object')return base;
+    base.mode=data.mode==='final'?'final':'quarters';
+    base.quarters=Array.from({length:5},(_,i)=>({
+      us:cleanGoal(data.quarters?.[i]?.us),them:cleanGoal(data.quarters?.[i]?.them)
+    }));
+    base.final={us:cleanGoal(data.final?.us),them:cleanGoal(data.final?.them)};
+    return base;
+  }
   function normalize(raw) {
     const s = raw && typeof raw === 'object' ? raw : fresh();
     if (!Array.isArray(s.players)||!Array.isArray(s.lineups)||s.lineups.length!==5) return fresh();
@@ -323,6 +338,7 @@
     s.positions = Array.from({length:5},(_,i)=>s.positions?.[i] && typeof s.positions[i]==='object' && !Array.isArray(s.positions[i]) ? s.positions[i]:{});
     s.quarter = Math.max(0,Math.min(4,Number(s.quarter)||0));
     s.tactics = Array.from({length:5},(_,i)=>{const t=s.tactics?.[i];return t&&typeof t==='object'&&!Array.isArray(t)?{opponentFormation:FORMATIONS[t.opponentFormation]?t.opponentFormation:'442',ownPositions:t.ownPositions&&typeof t.ownPositions==='object'?t.ownPositions:{},opponentPositions:t.opponentPositions&&typeof t.opponentPositions==='object'?t.opponentPositions:{},opponentLabels:t.opponentLabels&&typeof t.opponentLabels==='object'?t.opponentLabels:{},arrows:Array.isArray(t.arrows)?t.arrows.filter(a=>a&&['pass','run','press'].includes(a.type)&&['x1','y1','x2','y2'].every(k=>Number.isFinite(Number(a[k])))).map(a=>({type:a.type,x1:Number(a.x1),y1:Number(a.y1),x2:Number(a.x2),y2:Number(a.y2)})):[],note:typeof t.note==='string'?t.note:''}:{opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''};});
+    s.score=cleanScore(s.score);
     if(s.match!==undefined && (!s.match || typeof s.match!=='object')) delete s.match;
     if(s.match){s.match={date:typeof s.match.date==='string'?s.match.date.slice(0,10):'',title:typeof s.match.title==='string'?s.match.title.slice(0,80):'자체전'};}
     s.tab = ['lineup','tactics','roster','stats'].includes(s.tab)?s.tab:'lineup';
@@ -364,7 +380,7 @@
   const currentFormation = () => FORMATIONS[state.formations[state.quarter]];
   const currentSlots = () => currentFormation().slots;
   const name = id => state.players.find(p=>p.id===id)?.name||'미등록 선수';
-  function syncedData(){return JSON.parse(JSON.stringify({players:state.players,lineups:state.lineups,formations:state.formations,positions:state.positions,tactics:state.tactics,...(state.match?{match:state.match}:{})}));}
+  function syncedData(){return JSON.parse(JSON.stringify({players:state.players,lineups:state.lineups,formations:state.formations,positions:state.positions,tactics:state.tactics,score:state.score,...(state.match?{match:state.match}:{})}));}
   let lastRenderedDataSignature=JSON.stringify(syncedData());
   function save(fromCloud=false){
     const data=syncedData(),sig=JSON.stringify(data);
@@ -412,6 +428,7 @@
     updateBoardHeader();
     const ro=dataMode==='team'&&!teamCanEdit;
     const lock=['autoBtn','sampleBtn','clearBtn','resetPositionBtn','formationSelect','opponentFormationSelect','resetTacticOwnBtn','resetOpponentBtn','copyQuarterNoteBtn','undoArrowBtn','clearArrowsBtn','tacticNote','addPlayer','openOcr','importBtn','resetBtn'];
+    document.querySelectorAll('[data-score-mode],[data-score-input]').forEach(el=>{el.disabled=ro;});
     lock.forEach(id=>{const el=$(id);if(el)el.disabled=ro;});
     document.querySelectorAll('[data-active],[data-edit],[data-pos],[data-tpos],[data-opplabel],[data-tactic-tool]').forEach(el=>{
       if(el.matches('[data-tactic-tool="move"]'))return;
@@ -429,7 +446,7 @@
         formations:[...old.formations],
         positions:Array.from({length:5},()=>({})),
         tactics:Array.from({length:5},()=>({opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''})),
-        match:{date,title}
+        match:{date,title},score:blankScore()
       };
     },
     refreshBoardHeader:applyViewPermission,
@@ -486,7 +503,69 @@
   function selectTab(tab){if(!['lineup','tactics','roster','stats'].includes(tab))return;state.tab=tab;
     document.querySelectorAll('.tab').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.tab===tab)));
     document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='view-'+tab));save();render();}
+  function scoreSummary(){
+    const score=state.score||blankScore();
+    if(score.mode==='final'){
+      const complete=score.final.us!==null&&score.final.them!==null;
+      const partial=score.final.us!==null||score.final.them!==null;
+      return {mode:'final',home:score.final.us,away:score.final.them,complete,partial,entered:partial?1:0};
+    }
+    const rows=score.quarters||blankScore().quarters;
+    const home=rows.reduce((n,q)=>n+(q.us??0),0),away=rows.reduce((n,q)=>n+(q.them??0),0);
+    const entered=rows.filter(q=>q.us!==null&&q.them!==null).length;
+    const partial=rows.some(q=>q.us!==null||q.them!==null);
+    return {mode:'quarters',home:partial?home:null,away:partial?away:null,complete:entered===5,partial,entered};
+  }
+  function updateScoreDisplay(){
+    const q=scoreSummary();
+    $('scoreTotal').textContent=q.partial?((q.home??'—')+' : '+(q.away??'—')):'— : —';
+    $('scoreModeBadge').textContent=q.mode==='quarters'?'쿼터별 합산':'최종 직접 입력';
+    $('scoreStatus').textContent=!q.partial?'아직 입력한 스코어가 없습니다.':q.mode==='final'
+      ?(q.complete?'최종 스코어가 기록됐습니다.':'최종 스코어를 입력하는 중입니다.')
+      :(q.complete?'5개 쿼터 입력 완료 · 최종 스코어':'입력된 득점 합계 · '+q.entered+'/5쿼터 양 팀 모두 입력 완료');
+  }
+  function renderScore(){
+    state.score=cleanScore(state.score);
+    const isFinal=state.score.mode==='final';
+    document.querySelectorAll('[data-score-mode]').forEach(el=>el.classList.toggle('active',el.dataset.scoreMode===state.score.mode));
+    $('scoreHelp').textContent=isFinal
+      ?'최종 경기 결과만 입력합니다. 기존 쿼터별 기록은 유지되며 해당 모드로 돌아가면 다시 확인할 수 있습니다.'
+      :'각 쿼터에서 기록한 득점만 입력하세요. 빈칸은 미입력이고 0골은 0으로 입력하세요. 5Q 모두 입력하면 최종 스코어로 표시됩니다.';
+    const rows=isFinal?[{key:'final',label:'최종 점수',score:state.score.final}]:
+      state.score.quarters.map((q,i)=>({key:String(i),label:(i+1)+'Q',score:q}));
+    const heading='<div class="score-grid-row score-headings"><span>구분</span><span>우리 팀</span><span></span><span>상대 팀</span></div>';
+    $('scoreEditor').innerHTML=heading+rows.map(row=>
+      '<div class="score-grid-row"><span class="score-q">'+row.label+'</span>'+
+      '<label><input type="number" min="0" max="99" step="1" inputmode="numeric" data-score-input="'+row.key+'" data-score-side="us" aria-label="'+row.label+' 우리 팀 골" value="'+(row.score.us??'')+'" placeholder="—"></label>'+
+      '<span class="colon">:</span>'+
+      '<label><input type="number" min="0" max="99" step="1" inputmode="numeric" data-score-input="'+row.key+'" data-score-side="them" aria-label="'+row.label+' 상대 팀 골" value="'+(row.score.them??'')+'" placeholder="—"></label></div>'
+    ).join('');
+    updateScoreDisplay();
+  }
+  $('matchScorePanel').addEventListener('click',e=>{
+    const target=e.target.closest('[data-score-mode]');
+    if(!target||!['quarters','final'].includes(target.dataset.scoreMode))return;
+    if(dataMode==='team'&&!teamCanEdit)return;
+    if(state.score.mode===target.dataset.scoreMode)return;
+    state.score.mode=target.dataset.scoreMode;
+    save();renderScore();applyViewPermission();
+  });
+  $('scoreEditor').addEventListener('change',e=>{
+    const target=e.target.closest('[data-score-input]');if(!target)return;
+    if(dataMode==='team'&&!teamCanEdit)return;
+    if(target.value!==''&&(!target.validity.valid||cleanGoal(target.value)===null)){
+      alert('득점은 0부터 99까지의 정수로 입력하세요.');
+      renderScore();applyViewPermission();return;
+    }
+    const point=cleanGoal(target.value);
+    const side=target.dataset.scoreSide;
+    if(!['us','them'].includes(side))return;
+    const destination=target.dataset.scoreInput==='final'?state.score.final:state.score.quarters[Number(target.dataset.scoreInput)];
+    if(!destination||destination[side]===point)return;
+    destination[side]=point;save();updateScoreDisplay();
+  });
   function render(){const c=counts();
+    renderScore();
     $('totalPlayer').textContent=state.players.length;
     $('activePlayer').textContent=state.players.filter(p=>p.active).length;
     $('totalMin').textContent=Object.values(c).reduce((n,x)=>n+x.field,0);

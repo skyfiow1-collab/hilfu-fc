@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#071e23" />
+<title>HILFU FC | 선수·전술 보드 v6</title>
+<style>
+:root{--bg:#071e23;--panel:#0c292f;--panel2:#10343a;--line:#21464b;--muted:#99b6b7;--text:#ebf5f2;--mint:#75edc0;--green:#159c6c;--red:#ff9b98;--amber:#ffd78e;--r:18px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR",system-ui,sans-serif;background:radial-gradient(ellipse at top left,#154340 0%,var(--bg) 42%);color:var(--text);min-height:100vh}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid var(--mint);outline-offset:2px}.wrap{width:min(1240px,100%);margin:auto;padding:28px 24px 70px}.topbar{display:flex;align-items:center;gap:15px;justify-content:space-between;flex-wrap:wrap}.brand{display:flex;gap:13px;align-items:center}.logo{width:48px;height:48px;display:grid;place-items:center;background:var(--mint);color:#0b2928;border-radius:14px;font-size:23px;font-weight:950;letter-spacing:-3px;box-shadow:0 12px 34px #0b060622}.brand h1{font-size:19px;letter-spacing:.8px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.topactions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:11px;padding:10px 13px;white-space:nowrap;font-weight:650}.btn:hover{border-color:var(--mint)}.btn.primary{background:var(--mint);border-color:var(--mint);color:#0d2b2a}.btn.small{padding:7px 10px;font-size:12px}.btn.danger{color:var(--red)}.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin:34px 0 23px;flex-wrap:wrap}.kicker{display:inline-block;color:var(--mint);font-weight:760;font-size:11px;letter-spacing:2px}.hero h2{font-size:clamp(26px,4vw,39px);letter-spacing:-1.8px;margin:7px 0}.hero p{margin:0;color:var(--muted);font-size:14px}.statrow{display:flex;gap:9px}.stat{min-width:98px;border:1px solid var(--line);background:#0f3235cc;border-radius:13px;padding:13px 17px}.stat b{display:block;color:var(--mint);font-size:23px;font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-size:11px}.tabs{display:flex;gap:7px;border-bottom:1px solid var(--line);margin-bottom:19px}.tab{border:0;background:transparent;color:var(--muted);padding:13px 18px;font-weight:750;border-bottom:3px solid transparent}.tab[aria-selected="true"]{color:var(--mint);border-bottom-color:var(--mint)}.view{display:none}.view.active{display:block}.layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr);gap:17px}.panel{background:#0c292fdd;border:1px solid var(--line);border-radius:var(--r);padding:18px}.panelhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}.panelhead h3{margin:0;font-size:17px}.panelhead p{margin:3px 0 0;color:var(--muted);font-size:12px}.quarterrow{display:flex;gap:6px;flex-wrap:wrap}.qbtn{border:1px solid var(--line);background:#0b252b;color:var(--muted);border-radius:9px;padding:7px 12px;font-weight:750}.qbtn.active{background:var(--mint);color:var(--bg);border-color:var(--mint)}.pitch{position:relative;width:100%;aspect-ratio:1/1.04;max-height:610px;border-radius:14px;overflow:hidden;border:2px solid #6bcda8;background:repeating-linear-gradient(180deg,#167c5a 0%,#167c5a 12.5%,#187453 12.5%,#187453 25%);box-shadow:inset 0 0 32px #052e2766}.pitch:before{content:"";position:absolute;inset:13px;border:1.5px solid #d2f0d870;pointer-events:none}.half{position:absolute;top:50%;width:100%;border-top:1.5px solid #d2f0d870}.circle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:25%;aspect-ratio:1;border:1.5px solid #d2f0d870;border-radius:50%}.penalty{position:absolute;left:25%;width:50%;height:16%;border:1.5px solid #d2f0d870}.penalty.top{top:13px;border-top:0}.penalty.bottom{bottom:13px;border-bottom:0}.six{position:absolute;left:37%;width:26%;height:7%;border:1.5px solid #d2f0d870}.six.top{top:13px;border-top:0}.six.bottom{bottom:13px;border-bottom:0}.position{position:absolute;transform:translate(-50%,-50%);width:clamp(70px,16%,105px);min-height:50px;background:#092c30ed;color:white;border:1px solid #84e8c59f;border-radius:10px;box-shadow:0 6px 14px #07271f70;padding:5px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform .15s,background .15s;text-align:center}.position:hover{transform:translate(-50%,-50%) scale(1.06);background:#184b46}.position.empty{border:1px dashed #c3eee1a0;background:#0b474680}.poslabel{font-size:10px;color:var(--mint);font-weight:800}.posname{font-size:13px;font-weight:800;white-space:nowrap;text-overflow:ellipsis;max-width:100%;overflow:hidden}.position.empty .posname{opacity:.8;font-weight:500}.pitchfooter{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:13px;flex-wrap:wrap;color:var(--muted);font-size:12px}.tip{background:#123e3d;border:1px solid #236057;border-radius:12px;color:#c6e2d7;padding:12px 14px;font-size:13px;margin-top:14px}.sidecolumn{display:grid;align-content:start;gap:17px}.minirow{display:flex;justify-content:space-between;padding:10px 0;align-items:center;border-bottom:1px solid var(--line);gap:8px}.minirow:last-child{border-bottom:0}.minirow span{font-size:13px}.minirow b{font-variant-numeric:tabular-nums}.muted{color:var(--muted)}.chip{display:inline-block;border-radius:7px;background:#20464a;color:#c2efe0;padding:3px 7px;font-size:11px;font-weight:700}.alert{color:var(--amber)}.tools{display:flex;gap:8px;flex-wrap:wrap}.rostergrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.playercard{background:#0d3035;border:1px solid var(--line);border-radius:14px;padding:15px}.playercard.inactive{opacity:.53}.playerhead{display:flex;justify-content:space-between;align-items:center;gap:10px}.playerhead strong{font-size:16px}.playercard .meta{margin-top:6px;color:var(--muted);font-size:12px;min-height:32px}.playercard .roles{margin-top:9px;display:flex;gap:4px;flex-wrap:wrap;min-height:25px}.playerfoot{border-top:1px solid var(--line);padding-top:12px;margin-top:12px;display:flex;justify-content:space-between;align-items:center}.checkline{display:inline-flex;align-items:center;gap:6px;color:#d5eae4;font-size:12px}.checkline input{accent-color:#58dcb1;width:16px;height:16px}.count{color:var(--muted);font-size:13px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;min-width:630px}th,td{padding:13px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--muted);font-weight:700;background:#12343a}td{font-size:13px}tr:last-child td{border-bottom:0}.bar{height:8px;border-radius:50px;background:#1d4448;overflow:hidden;min-width:85px}.bar>i{display:block;height:100%;border-radius:50px;background:linear-gradient(90deg,#2eaf83,#8bf2bd)}.legend{font-size:12px;color:var(--muted)}.emptyhint{text-align:center;padding:36px;color:var(--muted)}dialog{border:1px solid #42695f;border-radius:18px;background:#102e32;color:var(--text);padding:0;width:min(440px,calc(100vw - 26px));max-height:85vh;box-shadow:0 30px 100px #0009}dialog::backdrop{background:#001b20bb;backdrop-filter:blur(5px)}.dlgbody{padding:22px}.dlghead{display:flex;align-items:start;justify-content:space-between;gap:20px;margin-bottom:15px}.dlghead h3{font-size:20px;margin:0}.dlghead p{font-size:12px;color:var(--muted);margin:4px 0 0}.close{border:0;background:transparent;color:var(--muted);font-size:24px;line-height:1}.field{display:block;margin-bottom:13px}.field>span{display:block;font-size:12px;font-weight:750;color:#bcd7d2;margin-bottom:6px}.field input{width:100%;background:#0a2328;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}.dlgactions{display:flex;justify-content:space-between;gap:8px;margin-top:19px}.candidatewrap{max-height:52vh;overflow:auto;display:grid;gap:7px}.candidate{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;background:#13393c;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;text-align:left}.candidate:hover{border-color:var(--mint)}.candidate b{font-size:14px}.candidate small{font-size:11px;color:var(--muted)}.candidate .reco{font-size:11px;color:var(--mint)}.footer{color:#7ea3a4;font-size:12px;text-align:center;margin:35px auto 0}.tactics-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:17px}.tactic-pitch{max-height:700px}.tactic-layer{position:absolute;inset:0;pointer-events:none}.tactic-marker{pointer-events:auto;position:absolute;transform:translate(-50%,-50%);min-width:54px;max-width:104px;min-height:44px;padding:4px 6px;border-radius:999px;border:2px solid rgba(255,255,255,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-weight:800;color:#fff;box-shadow:0 8px 18px rgba(0,0,0,.22);touch-action:none;user-select:none;z-index:3}.tactic-marker small{font-size:10px;opacity:.9;font-weight:700;line-height:1}.tactic-marker b{font-size:12px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:92px}.tactic-marker.home{background:linear-gradient(180deg,#0a4055,#0d637b);border-color:#76d9ff}.tactic-marker.away{background:linear-gradient(180deg,#7a2b16,#b14c20);border-color:#ffc18c}.tactic-marker.dragging{z-index:5;box-shadow:0 14px 28px rgba(0,0,0,.35);scale:1.05}.tactic-legend{display:flex;gap:8px;flex-wrap:wrap}.legend-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#163a3f;border:1px solid var(--line);font-size:12px}.legend-dot{width:11px;height:11px;border-radius:50%}.legend-dot.home{background:#2fb8ea}.legend-dot.away{background:#df6d31}.notearea{width:100%;min-height:150px;resize:vertical;background:#0a2328;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px;line-height:1.6}.stack{display:grid;gap:10px}.subtools{display:flex;gap:8px;flex-wrap:wrap}.minihelp{font-size:12px;color:var(--muted);line-height:1.6}.tactic-summary{display:grid;gap:10px}.formrow{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.formrow .field-inline{display:flex;flex-direction:column;gap:5px;min-width:150px}.field-inline span{font-size:12px;color:#bcd7d2;font-weight:700}.field-inline select{background:#0a2328;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 11px}.chipline{display:flex;gap:6px;flex-wrap:wrap}.chip.outline{background:transparent;border:1px solid var(--line);color:#cae7de}
+@media(max-width:950px){.rostergrid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout,.tactics-layout{grid-template-columns:1fr}.sidecolumn{grid-template-columns:1fr 1fr}.pitch{max-width:660px;margin:auto}}@media(max-width:600px){.wrap{padding:19px 12px 38px}.topbar{align-items:flex-start}.topactions{width:100%}.topactions .btn{flex:1;font-size:12px;padding:9px 7px}.hero{margin:28px 0 19px}.statrow{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.stat{min-width:0;padding:11px}.stat b{font-size:21px}.tabs{justify-content:space-around}.tab{flex:1;padding:12px 5px;font-size:14px}.panel{padding:12px;border-radius:13px}.sidecolumn{grid-template-columns:1fr}.pitch{aspect-ratio:1/1.18}.position{width:19%;min-height:45px;border-radius:8px;padding:4px 2px}.posname{font-size:11px}.poslabel{font-size:9px}.tactic-marker{min-width:48px;max-width:84px;min-height:40px;padding:4px 5px}.tactic-marker b{font-size:11px;max-width:72px}.rostergrid{grid-template-columns:1fr}.playercard{padding:13px}.playercard .meta{min-height:0}.panelhead h3{font-size:16px}.qbtn{padding:8px 10px}.hero h2{font-size:29px}}
+
+/* v3: 복수 포지션, 참석 투표 구역 한정, 포지션 최적화 편성 */
+.formhead{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.formation-select{background:#0e3438;color:#e9f9f1;border:1px solid #367262;border-radius:9px;padding:8px 9px;font-weight:750;min-width:142px}
+.position{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.position.dragging{cursor:grabbing;z-index:40;transform:translate(-50%,-50%) scale(1.07);background:#18443c;box-shadow:0 12px 30px #002a2bb5;border-color:#fff9c8;transition:none;pointer-events:none}
+.ocr-panel{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#113738;border:1px solid #2c6c5c;border-radius:12px;padding:13px 15px;margin-bottom:15px}
+.ocr-panel p{color:#b8d5d0;font-size:12px;margin:0;flex:1;min-width:205px}
+.ocr-preview{display:block;max-width:100%;max-height:220px;margin:8px auto 13px;border-radius:10px;border:1px solid #345b55;object-fit:contain}
+#ocrDialog{width:min(630px,calc(100vw - 24px));max-height:92vh}
+.ocr-content{max-height:calc(92vh - 70px);overflow:auto}
+.ocr-status{font-size:12px;color:#bce8d8;padding:9px 0;min-height:27px}
+.ocr-editable{width:100%;min-height:85px;border:1px solid #42675f;border-radius:10px;padding:12px;background:#071f24;color:#e7f7f1;font:13px/1.6 inherit;resize:vertical}
+.ocr-results{border:1px solid #36665c;background:#102b2f;border-radius:11px;padding:12px;margin-top:12px}
+.ocr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+.ocr-name{display:flex;align-items:center;gap:7px;border:1px solid #34504e;border-radius:8px;padding:8px;font-size:13px;cursor:pointer}
+.ocr-name.matched{border-color:#3aba94;background:#15493f}
+.ocr-name input{accent-color:var(--mint)}
+.ocr-guidance{color:#f3d9aa;font-size:12px;line-height:1.55}
+#ocrResult[hidden],#ocrPreview[hidden]{display:none}
+@media(max-width:600px){.ocr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formation-select{flex:1;min-width:120px}.panelhead .formhead{width:100%}}
+
+
+/* v3: position multi-select + primary marker */
+.role-fieldset{padding:10px;border:1px solid #376257;border-radius:12px;margin:0 0 14px}
+.role-fieldset legend{padding:0 5px;font-weight:750;font-size:12px;color:#bcd7d2}
+.role-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.role-option{display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px;border:1px solid #315452;background:#092b31;border-radius:8px;font-weight:750;font-size:12px;cursor:pointer}
+.role-option:has(input:checked){background:#175c4b;border-color:#75edc0;color:#eafff6}
+.role-option input{accent-color:var(--mint);width:14px;height:14px}
+.role-select{width:100%;background:#0a2328;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px}
+.gk-line{padding:9px 0 4px;font-size:13px;margin-bottom:7px}
+.chip.primary-role{background:#185b4b;border:1px solid #2d9d75;color:#c8ffe6}
+.position.outofrole{border-color:#ffd58d;background:#55452acc}
+.ocr-empty-message{padding:8px 10px;background:#4a3723;border:1px solid #795e35;border-radius:8px;margin:8px 0;color:#ffdc9c;font-size:12px}
+@media(max-width:600px){.role-picker{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+
+/* v5: 움직임 화살표와 공유 이미지 */
+.tactic-arrows{position:absolute;inset:0;width:100%;height:100%;z-index:2;touch-action:none;pointer-events:none;overflow:visible}
+.tactic-pitch[data-tool]:not([data-tool="move"]) .tactic-arrows{pointer-events:auto;cursor:crosshair}.tactic-pitch[data-tool]:not([data-tool="move"]) .tactic-marker{pointer-events:none}
+.tactic-pitch[data-tool]:not([data-tool="move"]) .tactic-layer{pointer-events:none}
+.draw-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:12px 0 14px}
+.toolbtn{border:1px solid #35665f;background:#0d3339;color:#daece9;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:750;touch-action:manipulation}
+.toolbtn[aria-pressed="true"]{background:var(--mint);color:#082724;border-color:var(--mint)}
+.toolbtn.pass{border-left:4px solid #ffe168}.toolbtn.run{border-left:4px solid #7bdcff}.toolbtn.press{border-left:4px solid #ff8488}
+.toolbtn.erase{border-left:4px solid #eee}.toolbtn.move{border-left:4px solid #7af0bd}
+.tactic-layer{z-index:3}.tactic-pitch{touch-action:pan-y}
+.tactic-pitch[data-tool]:not([data-tool="move"]){touch-action:none}
+.tactic-marker:not(.dragging){transition:box-shadow .12s}
+.opponent-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opponent-item{display:flex;align-items:center;gap:7px;min-width:0;background:#08272b;border:1px solid var(--line);border-radius:10px;padding:7px}
+.opponent-item span{font-size:11px;color:#ffc18c;min-width:38px;font-weight:800}
+.opponent-item input{min-width:0;width:100%;font:inherit;font-size:12px;padding:8px;border-radius:7px;background:#103338;color:#fff;border:1px solid #28525a}
+.tactic-help{font-size:12px;color:#b4d5d1;margin:8px 0 5px}
+#tacticStatus{min-height:19px;color:#a3d5ca;font-size:12px}
+@media(max-width:600px){.toolbtn{padding:9px 10px;font-size:11px}.opponent-list{grid-template-columns:repeat(2,minmax(0,1fr))}.opponent-item{padding:5px;gap:4px}.opponent-item span{min-width:32px;font-size:10px}.opponent-item input{padding:7px 5px;font-size:11px}}
+
+
+.syncbadge{display:inline-block;padding:3px 6px;background:#32505a;border-radius:7px;font-size:10px;color:#d6f2f6;margin-left:3px}
+.syncbadge.online{background:#19654b;color:#d9ffec}
+.syncbadge.warn{background:#7a4a19;color:#ffebc8}
+#syncDialog{width:min(560px,calc(100vw - 24px));max-height:90vh}
+.syncblock{background:#0b242a;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.syncblock[hidden]{display:none}
+.syncblock p{font-size:13px;color:#bad7d1;line-height:1.65;margin:7px 0}
+.sync-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.sync-actions button{flex:1;white-space:normal;min-width:165px}
+#cloudStatus{min-height:40px;white-space:pre-line;font-size:13px;color:#c9e3e0;line-height:1.6}
+.syncnote{font-size:12px;color:var(--muted);line-height:1.7}
+.syncnote code{font-family:ui-monospace,monospace;color:var(--mint);word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="topbar"><div class="brand"><div class="logo">H<span style="font-size:13px;letter-spacing:0">FC</span></div><div><h1>HILFU FC</h1><p>TEAM & TACTICS MANAGER · v7.0 · 실시간 동기화 준비</p></div></div><div class="topactions"><button class="btn" id="cloudBtn" type="button">☁ 동기화 설정 <span id="syncBadge" class="syncbadge">미연결</span></button><button class="btn" id="exportBtn">↓ 데이터 백업</button><button class="btn" id="importBtn">↑ 백업 불러오기</button><input type="file" id="importFile" accept="application/json,.json" hidden><button class="btn" id="resetBtn">초기화</button></div></header>
+<section class="hero"><div><span class="kicker">MATCH DAY CONTROL</span><h2>우리 팀의 경기를 설계하다.</h2><p>선수 명단 · 전술 보드 · 출전시간 관리 · Google 로그인 시 휴대폰·태블릿 자동 동기화</p></div><div class="statrow"><div class="stat"><b id="totalPlayer">19</b><small>등록 선수</small></div><div class="stat"><b id="activePlayer">19</b><small>이번 경기 참석</small></div><div class="stat"><b id="totalMin">0</b><small>필드 출전·쿼터</small></div></div></section>
+<nav class="tabs" aria-label="메뉴"><button class="tab" data-tab="lineup" aria-selected="true">⚽ 라인업</button><button class="tab" data-tab="tactics" aria-selected="false">🧭 전술판</button><button class="tab" data-tab="roster" aria-selected="false">👥 선수 명단</button><button class="tab" data-tab="stats" aria-selected="false">📊 출전시간</button></nav>
+<section class="view active" id="view-lineup"><div class="layout"><div class="panel"><div class="panelhead"><div><h3 id="formationHeading">포메이션 4-1-2-3</h3><p id="formationSub">수미 1명 · 중앙 미드필더 2명</p></div><div class="formhead"><label for="formationSelect" class="legend">포메이션</label><select class="formation-select" id="formationSelect"><option value="433">4-1-2-3 (4-3-3)</option></select><div class="quarterrow" id="quarterTabs"></div></div></div><div class="pitch"><div class="half"></div><div class="circle"></div><div class="penalty top"></div><div class="penalty bottom"></div><div class="six top"></div><div class="six bottom"></div><div id="pitchPositions"></div></div><div class="pitchfooter"><span>탭하면 선수 선택 · 드래그하면 자유 이동 · 다른 칸 위에 놓으면 선수 교환</span><span id="qCount">0 / 11명</span></div><div class="tools" style="margin-top:13px"><button class="btn primary small" id="autoBtn">⚡ 5쿼터 포지션 최적 편성</button><button class="btn small" id="sampleBtn">Q1 예시 배치</button><button class="btn small" id="clearBtn">현재 쿼터 비우기</button><button class="btn small" id="resetPositionBtn">위치 초기화</button></div><div class="tip">💡 <b>운영 팁</b> · 먼저 ‘선수 명단’에서 참석자를 체크하세요. 자동 편성은 선수의 주·부 포지션과 필드 출전 횟수를 함께 최적화한 <b>초안</b>이며, 감독이 최종 조정하면 됩니다.</div></div><aside class="sidecolumn"><div class="panel"><div class="panelhead"><div><h3>현재 쿼터</h3><p id="quarterLabel">1쿼터 · 25분</p></div><span class="chip" id="filledBadge">미완성</span></div><div id="quarterSummary"></div></div><div class="panel"><div class="panelhead"><div><h3>쿼터 운영</h3><p>균등 출전을 확인하세요</p></div><button class="btn small" data-go="stats">자세히</button></div><div id="minuteSummary"></div></div><div class="panel"><div class="panelhead"><div><h3>전술 메모</h3><span class="chip" id="tacticLabel">4-3-3</span></div><div id="tacticText" style="font-size:13px;line-height:1.8;color:#c4e1dc">공격: 좌우 윙 넓게 배치, CM의 하프스페이스 침투, CDM은 후방 보호<br>수비: CM 1명 전진 압박, 나머지 미드필더 하강하여 4-4-2 형태로 전환<br>역습: 중앙에서 전진 패스가 가능하면 윙어는 수비 뒷공간 침투</div></div></aside></div></section>
+<section class="view" id="view-tactics"><div class="tactics-layout"><div class="panel"><div class="panelhead"><div><h3>전술 설명 보드</h3><p>선택한 쿼터의 우리 라인업을 그대로 가져오고, 상대 포메이션을 다른 색으로 겹쳐 설명할 수 있습니다.</p></div><div class="formhead"><div class="quarterrow" id="tacticQuarterTabs"></div></div></div><div class="formrow" style="margin-bottom:14px"><label class="field-inline"><span>우리 팀</span><select id="tacticOurFormation" disabled><option>자동 불러오기</option></select></label><label class="field-inline"><span>상대 포메이션</span><select id="opponentFormationSelect"><option value="442">4-4-2</option></select></label><div class="subtools"><button class="btn small" id="resetTacticOwnBtn" type="button">우리 위치 다시 불러오기</button><button class="btn small" id="resetOpponentBtn" type="button">상대 위치 초기화</button><button class="btn small" id="copyQuarterNoteBtn" type="button">현재 라인업 기준 메모 안내</button></div></div><div class="draw-toolbar" aria-label="전술판 도구"><button class="toolbtn move" type="button" data-tactic-tool="move" aria-pressed="true">✋ 말판 이동</button><button class="toolbtn pass" type="button" data-tactic-tool="pass" aria-pressed="false">➜ 패스</button><button class="toolbtn run" type="button" data-tactic-tool="run" aria-pressed="false">➜ 침투</button><button class="toolbtn press" type="button" data-tactic-tool="press" aria-pressed="false">➜ 압박</button><button class="toolbtn erase" type="button" data-tactic-tool="erase" aria-pressed="false">⌫ 화살표 지우개</button><button class="btn small" id="undoArrowBtn" type="button">↶ 화살표 실행취소</button><button class="btn small danger" id="clearArrowsBtn" type="button">전체 지우기</button><button class="btn primary small" id="saveTacticPngBtn" type="button">⬇ PNG 저장</button></div><p class="tactic-help">패스·침투·압박을 선택한 뒤 경기장에서 시작점부터 끝점까지 끌어보세요. 지우개는 화살표를 탭하면 됩니다.</p><div id="tacticStatus" role="status"></div><div class="pitch tactic-pitch" id="tacticBoard" data-tool="move"><div class="half"></div><div class="circle"></div><div class="penalty top"></div><div class="penalty bottom"></div><div class="six top"></div><div class="six bottom"></div><svg id="tacticArrows" class="tactic-arrows" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="전술 이동 화살표"></svg><div id="tacticMarkers" class="tactic-layer"></div></div><div class="pitchfooter"><span>우리 팀은 파란 말판, 상대는 주황 말판입니다. 드래그로 위치 조정 · 상대 말판은 탭해서 이름/라벨 수정</span><span id="tacticCount">우리 0 · 상대 0</span></div><div class="tip">💡 <b>활용 팁</b> · 1쿼터 라인업을 짠 뒤 전술판으로 넘어오면 같은 쿼터의 선수/포지션/위치를 그대로 보여줍니다. 상대 포메이션만 바꿔도 기본 배치가 자동 생성되어 감독 설명용 말판처럼 사용할 수 있습니다.</div></div><aside class="sidecolumn"><div class="panel"><div class="panelhead"><div><h3>보드 요약</h3><p>쿼터별 전술 설명 준비</p></div><span class="chip" id="tacticQuarterBadge">1Q</span></div><div class="tactic-summary"><div class="minirow"><span class="muted">우리 포메이션</span><b id="tacticOurName">-</b></div><div class="minirow"><span class="muted">상대 포메이션</span><b id="tacticOppName">-</b></div><div class="minirow"><span class="muted">우리 배치 선수</span><b id="tacticOwnCount">0명</b></div><div class="minirow"><span class="muted">상대 말판 수</span><b id="tacticOppCount">0개</b></div></div><div class="tactic-legend" style="margin-top:12px"><span class="legend-pill"><i class="legend-dot home"></i>우리 팀</span><span class="legend-pill"><i class="legend-dot away"></i>상대 팀</span></div></div><div class="panel"><div class="panelhead"><div><h3>상대 선수 이름 · 역할</h3><p>11명 말판의 이름을 직접 입력하면 전술판에 반영됩니다.</p></div></div><div class="opponent-list" id="opponentLabelList"></div></div><div class="panel"><div class="panelhead"><div><h3>전술 설명 메모</h3><p>각 쿼터별로 따로 저장됩니다</p></div></div><textarea id="tacticNote" class="notearea" placeholder="예: 상대 4-4-2라면 우리 LW/RW는 1차로 넓게 서고, 수비 시 CM 한 명 내려 4-4-2로 맞춘다. 상대 빠른 윙어가 오른쪽이면 LB는 터치라인 유도, LCB는 커버 준비."></textarea><p class="minihelp">라인업 페이지의 배치는 그대로 유지되고, 전술판에서 움직인 위치는 설명용 별도 위치로 저장됩니다. 따라서 전술 설명을 위해 말을 움직여도 원래 라인업 편성은 바뀌지 않습니다.</p></div><div class="panel"><div class="panelhead"><div><h3>빠른 포인트</h3><p>설명 시작용 체크리스트</p></div></div><div class="stack"><div class="chipline"><span class="chip outline">① 상대 1선 압박 위치</span><span class="chip outline">② 우리 CDM/CB 탈압박</span></div><div class="chipline"><span class="chip outline">③ 상대 빠른 윙 대응</span><span class="chip outline">④ 하프스페이스 침투</span></div><div class="chipline"><span class="chip outline">⑤ 수비 전환 시 4-4-2 정렬</span><span class="chip outline">⑥ 세컨볼 회수 위치</span></div></div></div></aside></div></section>
+<section class="view" id="view-roster"><div class="panel"><div class="panelhead"><div><h3>선수 관리 <span class="count" id="rosterCount"></span></h3><p>참석 여부를 체크하고, 선수별 가능 포지션을 여러 개 선택하고, 주 포지션을 따로 지정하세요.</p></div><button class="btn primary" id="addPlayer">＋ 선수 추가</button></div>
+<div class="ocr-panel"><div><b>📸 밴드 참석 명단 가져오기</b><p>밴드 투표 화면의 <b>‘참석’에 투표한 이름만</b> 자동 체크합니다. 불참·미정·미투표 이름은 제외하며 적용 전에 결과를 확인합니다.</p></div><button class="btn primary" id="openOcr">스크린샷 불러오기</button></div>
+<div class="rostergrid" id="rosterGrid"></div></div></section>
+<section class="view" id="view-stats"><div class="panel"><div class="panelhead"><div><h3>출전시간 집계</h3><p>1쿼터 25분 기준 · 필드 출전시간만 계산하고 GK는 별도 집계</p></div><span class="chip">총 5쿼터 / 125분</span></div><div class="tablewrap"><table><thead><tr><th>선수</th><th>참석</th><th>필드 Q</th><th>필드 출전시간</th><th>GK Q (시간 제외)</th><th>필드 비중</th></tr></thead><tbody id="statsBody"></tbody></table></div><p class="legend" style="margin-top:14px">출전시간은 필드 포지션에 배치된 쿼터 × 25분입니다. GK 출전은 기록만 별도로 표시하고 분 단위 출전시간에서는 제외합니다. 경기 중 교체·부분 출전은 아직 반영되지 않습니다.</p></div></section>
+<footer class="footer">HILFU FC · 브라우저 자동 저장 · Firebase 연결 시 동일 Google 계정 기기 간 실시간 동기화 · JSON 백업 권장</footer>
+</div>
+<dialog id="ocrDialog"><div class="dlgbody ocr-content"><div class="dlghead"><div><h3>밴드 참석 명단 인식</h3><p>투표 결과에서 ‘참석’ 항목 아래의 이름만 자동 선택합니다.</p></div><button class="close" id="closeOcr" type="button" aria-label="닫기">×</button></div>
+<label class="field"><span>① 참석자 명단 스크린샷</span><input id="ocrFile" type="file" accept="image/*"/></label>
+<img id="ocrPreview" class="ocr-preview" alt="업로드한 명단 스크린샷 미리보기" hidden/>
+<div class="tools"><button class="btn small" id="ocrReadBtn" type="button">사진 다시 인식</button></div>
+<div id="ocrStatus" class="ocr-status" role="status">이미지를 선택하면 한국어 문자 인식을 자동 시작합니다.</div>
+<label class="field"><span>② 인식한 텍스트 (수정 가능)</span><textarea class="ocr-editable" id="ocrEditable" placeholder="인식 결과를 수정할 수 있습니다. 참석 구역을 반드시 표시하세요.&#10;참석 (3명)&#10;선수01&#10;선수02&#10;선수03&#10;불참 (1명)&#10;선수17"></textarea></label>
+<button class="btn small" id="ocrAnalyzeBtn" type="button">텍스트로 다시 명단 분석</button>
+<div id="ocrResult" class="ocr-results" hidden><b id="ocrResultCount">0명 발견</b><p class="ocr-guidance" id="ocrSectionNote"></p><div id="ocrMatches" class="ocr-grid"></div><p class="ocr-guidance" id="ocrUncertain"></p><p class="ocr-guidance">※ 최종 적용 시 체크된 선수만 참석 처리하고, 나머지는 미참석으로 변경합니다. 미참석 선수의 기존 라인업 배치도 제거됩니다.</p><div class="dlgactions"><button class="btn primary" id="applyAttendance" type="button">이 명단으로 참석 체크 적용</button></div></div>
+<p class="legend">OCR은 브라우저에서 실행되며 처음에는 인터넷으로 한국어 인식 모델을 내려받습니다. 원본 사진은 별도 서버로 전송하지 않습니다. <b>‘참석’ 구역을 식별하지 못하면 누구도 자동 체크하지 않습니다.</b> 불참·미정도 나온 전체 투표 결과 화면을 올리면 구분하기 좋습니다. 실제 밴드 화면 구성에 따라 인식 결과를 꼭 검토하세요.</p>
+</div></dialog>
+<dialog id="picker"><div class="dlgbody"><div class="dlghead"><div><h3 id="pickerTitle">선수 배치</h3><p>선택한 포지션에 출전할 선수를 고르세요.</p></div><button class="close" id="closePicker" aria-label="닫기">×</button></div><label class="field"><span>이름 검색</span><input id="playerSearch" placeholder="선수 이름 검색" autocomplete="off"></label><div class="candidatewrap" id="candidateList"></div><div class="dlgactions"><button class="btn" id="removePosition">이 자리 비우기</button><button class="btn" id="cancelPicker">취소</button></div></div></dialog>
+<dialog id="editor"><form id="editorForm" class="dlgbody"><div class="dlghead"><div><h3 id="editorTitle">선수 추가</h3><p>가능 포지션을 복수 선택하고 주 포지션을 지정하세요.</p></div><button type="button" class="close" id="closeEditor" aria-label="닫기">×</button></div><label class="field"><span>선수 이름 *</span><input id="editName" required maxlength="20" placeholder="예: 선수01"></label><fieldset class="role-fieldset"><legend>가능 포지션 (복수 선택)</legend><div id="editRoleChoices" class="role-picker"></div></fieldset>
+<label class="field"><span>주 포지션 (선택한 포지션 중 우선)</span><select id="editPrimaryRole" class="role-select"><option value="">포지션을 먼저 선택하세요</option></select></label>
+<label class="checkline gk-line"><input type="checkbox" id="editGKEligible"> GK 로테이션 가능</label><label class="field"><span>특징 메모</span><input id="editMemo" maxlength="120" placeholder="예: 활동량 좋음, 양발"></label><div class="dlgactions"><button class="btn danger" type="button" id="deletePlayer">선수 삭제</button><button class="btn primary" type="submit">저장하기</button></div></form></dialog>
+<script>
+(() => {
+  'use strict';
+  const KEY = 'hilfu-fc-app-v1'; // v1 저장 데이터를 그대로 이어받습니다.
+  const seed = [
+    ['선수01','CF, CDM, CB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수02','CM','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수03','CM, LW','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수04','CM, LW, CB, CDM','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수05','CB, RB, LB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수06','CF','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수07','CF, LB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수08','CB, LB, LW, RW','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수09','RB, CF','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수10','LW, RW, LB, RB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수11','RW, CM','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수12','CB, CM','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수13','LW, RW, LB, RB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수14','CM','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수15','CM, CB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수16','CM, RW, CF','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수17','CB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수18','LW, CB','예시 선수 · 선수 명단에서 수정하세요'],
+    ['선수19','','예시 선수 · 선수 명단에서 수정하세요']
+  ];
+  const pos = (key, label, x, y) => ({key, label, x, y});
+  const DEF4 = [pos('LB','좌풀백',13,77), pos('LCB','좌센터백',38,78), pos('RCB','우센터백',62,78), pos('RB','우풀백',87,77)];
+  const KEEPER = pos('GK','골키퍼',50,92);
+  const FORMATIONS = {
+    '433': {name:'4-1-2-3 (4-3-3)', tagline:'수미 1명 · 중앙 미드필더 2명',
+      slots:[pos('LW','좌윙',16,20),pos('ST','원톱',50,15),pos('RW','우윙',84,20),pos('LCM','좌중미',33,40),pos('RCM','우중미',67,40),pos('CDM','수미',50,56),...DEF4,KEEPER],
+      groups:[['공격진',['LW','ST','RW']],['중원',['LCM','RCM','CDM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '4231': {name:'4-2-3-1', tagline:'더블 볼란치 · 공격형 미드필더 1명',
+      slots:[pos('LW','좌공격',16,26),pos('ST','원톱',50,14),pos('RW','우공격',84,26),pos('CAM','공격형 미드',50,39),pos('LCDM','좌수미',35,57),pos('RCDM','우수미',65,57),...DEF4,KEEPER],
+      groups:[['공격진',['LW','ST','RW']],['2선',['CAM']],['수비형 중원',['LCDM','RCDM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '442': {name:'4-4-2', tagline:'투톱 · 좌우 측면 미드필더',
+      slots:[pos('LST','좌톱',37,18),pos('RST','우톱',63,18),pos('LM','좌미드',14,45),pos('LCM','좌중미',38,49),pos('RCM','우중미',62,49),pos('RM','우미드',86,45),...DEF4,KEEPER],
+      groups:[['공격진',['LST','RST']],['중원',['LM','LCM','RCM','RM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '352': {name:'3-5-2', tagline:'센터백 3명 · 양쪽 윙백',
+      slots:[pos('LST','좌톱',36,17),pos('RST','우톱',64,17),pos('CAM','공격형 미드',50,35),pos('LM','좌윙백',10,49),pos('LCM','좌중미',36,54),pos('RCM','우중미',64,54),pos('RM','우윙백',90,49),pos('LCB','좌센터백',26,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',74,78),KEEPER],
+      groups:[['공격진',['LST','RST']],['중원·윙백',['CAM','LM','LCM','RCM','RM']],['수비진',['LCB','CB','RCB']],['골키퍼',['GK']]]},
+    '433a': {name:'4-3-3 (공격형)', tagline:'공격형 미드필더 · 전방 스리톱',
+      slots:[pos('LW','좌윙',15,19),pos('ST','원톱',50,13),pos('RW','우윙',85,19),pos('CAM','공격형 미드',50,38),pos('LCM','좌중미',33,53),pos('RCM','우중미',67,53),...DEF4,KEEPER],
+      groups:[['공격진',['LW','ST','RW']],['중원',['CAM','LCM','RCM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '4141': {name:'4-1-4-1', tagline:'수비형 미드필더 1명 · 2선 4명',
+      slots:[pos('ST','원톱',50,14),pos('LM','좌측 미드',13,40),pos('LCM','좌중미',36,42),pos('RCM','우중미',64,42),pos('RM','우측 미드',87,40),pos('CDM','수미',50,61),...DEF4,KEEPER],
+      groups:[['공격진',['ST']],['2선',['LM','LCM','RCM','RM']],['수비형 중원',['CDM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '4312': {name:'4-3-1-2', tagline:'중앙 미드필더 3명 · 공격형 미드필더 1명 · 투톱',
+      slots:[pos('LST','좌톱',37,16),pos('RST','우톱',63,16),pos('CAM','공격형 미드',50,35),pos('LCM','좌중미',26,51),pos('CM','중앙 미드',50,59),pos('RCM','우중미',74,51),...DEF4,KEEPER],
+      groups:[['공격진',['LST','RST']],['2선',['CAM']],['중원',['LCM','CM','RCM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '4411': {name:'4-4-1-1', tagline:'원톱 바로 아래 섀도 스트라이커 · 미드필더 4명',
+      slots:[pos('ST','원톱',50,14),pos('CAM','세컨드 스트라이커',50,32),pos('LM','좌미드',13,47),pos('LCM','좌중미',38,52),pos('RCM','우중미',62,52),pos('RM','우미드',87,47),...DEF4,KEEPER],
+      groups:[['공격진',['ST']],['2선',['CAM']],['중원',['LM','LCM','RCM','RM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '451': {name:'4-5-1', tagline:'원톱 · 중앙 밀집형 5미드필더',
+      slots:[pos('ST','원톱',50,15),pos('LM','좌미드',11,43),pos('LCM','좌중미',30,46),pos('CM','중앙 미드',50,50),pos('RCM','우중미',70,46),pos('RM','우미드',89,43),...DEF4,KEEPER],
+      groups:[['공격진',['ST']],['중원',['LM','LCM','CM','RCM','RM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '4222': {name:'4-2-2-2', tagline:'더블 볼란치 · 두 명의 공격형 미드필더 · 투톱',
+      slots:[pos('LST','좌톱',37,15),pos('RST','우톱',63,15),pos('LAM','좌 공격형 미드',23,37),pos('RAM','우 공격형 미드',77,37),pos('LCDM','좌수미',38,58),pos('RCDM','우수미',62,58),...DEF4,KEEPER],
+      groups:[['공격진',['LST','RST']],['2선',['LAM','RAM']],['수비형 중원',['LCDM','RCDM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '424': {name:'4-2-4', tagline:'전방 4명 · 중앙 미드필더 2명',
+      slots:[pos('LW','좌윙',13,20),pos('LST','좌톱',38,15),pos('RST','우톱',62,15),pos('RW','우윙',87,20),pos('LCM','좌중미',36,51),pos('RCM','우중미',64,51),...DEF4,KEEPER],
+      groups:[['공격진',['LW','LST','RST','RW']],['중원',['LCM','RCM']],['수비진',['LB','LCB','RCB','RB']],['골키퍼',['GK']]]},
+    '343': {name:'3-4-3', tagline:'센터백 3명 · 윙백 2명 · 전방 스리톱',
+      slots:[pos('LW','좌윙',15,18),pos('ST','원톱',50,13),pos('RW','우윙',85,18),pos('LM','좌윙백',10,48),pos('LCM','좌중미',38,51),pos('RCM','우중미',62,51),pos('RM','우윙백',90,48),pos('LCB','좌센터백',25,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',75,78),KEEPER],
+      groups:[['공격진',['LW','ST','RW']],['중원·윙백',['LM','LCM','RCM','RM']],['수비진',['LCB','CB','RCB']],['골키퍼',['GK']]]},
+    '3421': {name:'3-4-2-1', tagline:'원톱 · 두 명의 공격형 미드필더 · 양쪽 윙백',
+      slots:[pos('ST','원톱',50,13),pos('LAM','좌 공격형 미드',30,31),pos('RAM','우 공격형 미드',70,31),pos('LM','좌윙백',10,51),pos('LCM','좌중미',38,54),pos('RCM','우중미',62,54),pos('RM','우윙백',90,51),pos('LCB','좌센터백',25,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',75,78),KEEPER],
+      groups:[['공격진',['ST']],['2선',['LAM','RAM']],['중원·윙백',['LM','LCM','RCM','RM']],['수비진',['LCB','CB','RCB']],['골키퍼',['GK']]]},
+    '3412': {name:'3-4-1-2', tagline:'투톱 · 2선 공격형 미드 · 더블 볼란치',
+      slots:[pos('LST','좌톱',36,17),pos('RST','우톱',64,17),pos('CAM','공격형 미드',50,34),pos('LM','좌윙백',10,52),pos('LCDM','좌수미',38,54),pos('RCDM','우수미',62,54),pos('RM','우윙백',90,52),pos('LCB','좌센터백',25,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',75,78),KEEPER],
+      groups:[['공격진',['LST','RST']],['2선',['CAM']],['중원·윙백',['LM','LCDM','RCDM','RM']],['수비진',['LCB','CB','RCB']],['골키퍼',['GK']]]},
+    '532': {name:'5-3-2', tagline:'수비수 5명 · 중앙 미드필더 3명 · 투톱',
+      slots:[pos('LST','좌톱',37,16),pos('RST','우톱',63,16),pos('LCM','좌중미',26,49),pos('CM','중앙 미드',50,53),pos('RCM','우중미',74,49),pos('LB','좌윙백',9,73),pos('LCB','좌센터백',29,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',71,78),pos('RB','우윙백',91,73),KEEPER],
+      groups:[['공격진',['LST','RST']],['중원',['LCM','CM','RCM']],['수비진·윙백',['LB','LCB','CB','RCB','RB']],['골키퍼',['GK']]]},
+    '541': {name:'5-4-1', tagline:'수비수 5명 · 미드필더 4명 · 원톱',
+      slots:[pos('ST','원톱',50,15),pos('LM','좌미드',14,44),pos('LCM','좌중미',38,49),pos('RCM','우중미',62,49),pos('RM','우미드',86,44),pos('LB','좌윙백',9,73),pos('LCB','좌센터백',29,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',71,78),pos('RB','우윙백',91,73),KEEPER],
+      groups:[['공격진',['ST']],['중원',['LM','LCM','RCM','RM']],['수비진·윙백',['LB','LCB','CB','RCB','RB']],['골키퍼',['GK']]]},
+    '523': {name:'5-2-3', tagline:'수비수 5명 · 중앙 미드필더 2명 · 스리톱',
+      slots:[pos('LW','좌윙',16,19),pos('ST','원톱',50,14),pos('RW','우윙',84,19),pos('LCM','좌중미',37,49),pos('RCM','우중미',63,49),pos('LB','좌윙백',9,73),pos('LCB','좌센터백',29,78),pos('CB','중앙센터백',50,79),pos('RCB','우센터백',71,78),pos('RB','우윙백',91,73),KEEPER],
+      groups:[['공격진',['LW','ST','RW']],['중원',['LCM','RCM']],['수비진·윙백',['LB','LCB','CB','RCB','RB']],['골키퍼',['GK']]]}
+  };
+  const FORMATION_GROUPS = [
+    ['4백 포메이션', ['433','433a','4231','442','4141','4312','4411','451','4222','424']],
+    ['3백 포메이션', ['352','343','3421','3412']],
+    ['5백 포메이션', ['532','541','523']]
+  ];
+  const FORMATION_GUIDES = {
+    '433':'공격: 윙 폭 유지와 CM 하프스페이스 침투. CDM은 후방 보호. 수비: 4-4-2 전환.',
+    '433a':'공격: CAM을 상대 중원과 수비 사이에 배치하고 양쪽 CM이 지원. 수비: CAM의 1차 압박 가담.',
+    '4231':'공격: 더블 볼란치가 빌드업을 받치고 CAM이 연결. 수비: 4-4-1-1이나 4-4-2 전환.',
+    '442':'공격: 투톱 연계와 측면 침투. 수비: 4-4-2 두 줄 유지.',
+    '4141':'공격: 양 측면 전개와 중앙 미드필더 후방 침투. 수비: 수미가 중앙 수비를 보호.',
+    '4312':'공격: CAM이 투톱을 지원하는 중앙 삼각형. 수비: 측면 공간을 풀백·CM이 협력 커버.',
+    '4411':'공격: 원톱을 2선 공격형 미드필더가 연결. 수비: 두 줄 사이 간격을 최소화.',
+    '451':'공격: 측면 미드필더의 전진 지원. 수비: 중원 숫자 우위로 중앙 차단.',
+    '4222':'공격: 공격형 미드필더 둘이 하프스페이스 공략. 수비: 측면 커버 위치 사전 합의.',
+    '424':'공격: 네 명의 전방 공격수로 빠르게 침투. 수비: 중앙 미드필더 둘의 부담이 큼.',
+    '352':'공격: 윙백이 폭을 확보하고 CAM이 투톱 지원. 수비: 윙백 하강 시 5-3-2.',
+    '343':'공격: 스리톱과 윙백의 폭 유지. 수비: 양 윙백의 복귀 타이밍 조율.',
+    '3421':'공격: 두 공격형 미드필더가 원톱 주변에서 연계. 수비: 중앙·하프스페이스 보호.',
+    '3412':'공격: CAM이 투톱과 연결. 수비: 양 윙백 뒤 공간을 센터백이 커버.',
+    '532':'공격: 투톱과 중앙 미드필더의 역습 연결. 수비: 윙백 포함 후방 5명 유지.',
+    '541':'공격: 원톱의 볼 키핑과 측면 지원. 수비: 5-4-1 두 줄 간격 유지.',
+    '523':'공격: 스리톱의 전환 속도 활용. 수비: 중원 2명에게 과부하가 생기지 않게 관리.'
+  };
+  const ROLE_OPTIONS = ['CF','LW','RW','CAM','CM','CDM','LM','RM','CB','LB','RB'];
+  const DEFAULT_GK = new Set(['선수02','선수10','선수16','선수13','선수12','선수05']);
+  const normalizeRole = r => ({FW:'CF',ST:'CF',LST:'CF',RST:'CF',LCM:'CM',RCM:'CM',LCDM:'CDM',RCDM:'CDM',LCB:'CB',RCB:'CB'}[String(r||'').trim().toUpperCase()]||String(r||'').trim().toUpperCase());
+  const cleanRoles = roles => [...new Set((Array.isArray(roles)?roles:[]).map(normalizeRole).filter(r=>ROLE_OPTIONS.includes(r)))];
+  const $ = id => document.getElementById(id);
+  const esc = str => String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  function renderFormationSelects(){
+    const markup=FORMATION_GROUPS.map(([label, ids])=>`<optgroup label="${esc(label)}">${ids.map(id=>`<option value="${esc(id)}">${esc(FORMATIONS[id].name)}</option>`).join('')}</optgroup>`).join('');
+    $('formationSelect').innerHTML=markup;
+    $('opponentFormationSelect').innerHTML=markup;
+  }
+  renderFormationSelects();
+  function fresh() {
+    return {players:seed.map((v,i)=>({id:'p'+(i+1),name:v[0],roles:cleanRoles(v[1].split(',')),gkEligible:DEFAULT_GK.has(v[0]),memo:v[2],active:true})),
+      lineups:Array.from({length:5},()=>({})),formations:Array(5).fill('433'),positions:Array.from({length:5},()=>({})),
+      tactics:Array.from({length:5},()=>({opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''})),quarter:0,tab:'lineup'};
+  }
+  function normalize(raw) {
+    const s = raw && typeof raw === 'object' ? raw : fresh();
+    if (!Array.isArray(s.players)||!Array.isArray(s.lineups)||s.lineups.length!==5) return fresh();
+    s.formations = Array.from({length:5},(_,i)=>FORMATIONS[s.formations?.[i]]?s.formations[i]:'433');
+    s.positions = Array.from({length:5},(_,i)=>s.positions?.[i] && typeof s.positions[i]==='object' && !Array.isArray(s.positions[i]) ? s.positions[i]:{});
+    s.quarter = Math.max(0,Math.min(4,Number(s.quarter)||0));
+    s.tactics = Array.from({length:5},(_,i)=>{const t=s.tactics?.[i];return t&&typeof t==='object'&&!Array.isArray(t)?{opponentFormation:FORMATIONS[t.opponentFormation]?t.opponentFormation:'442',ownPositions:t.ownPositions&&typeof t.ownPositions==='object'?t.ownPositions:{},opponentPositions:t.opponentPositions&&typeof t.opponentPositions==='object'?t.opponentPositions:{},opponentLabels:t.opponentLabels&&typeof t.opponentLabels==='object'?t.opponentLabels:{},arrows:Array.isArray(t.arrows)?t.arrows.filter(a=>a&&['pass','run','press'].includes(a.type)&&['x1','y1','x2','y2'].every(k=>Number.isFinite(Number(a[k])))).map(a=>({type:a.type,x1:Number(a.x1),y1:Number(a.y1),x2:Number(a.x2),y2:Number(a.y2)})):[],note:typeof t.note==='string'?t.note:''}:{opponentFormation:'442',ownPositions:{},opponentPositions:{},opponentLabels:{},arrows:[],note:''};});
+    s.tab = ['lineup','tactics','roster','stats'].includes(s.tab)?s.tab:'lineup';
+    s.players.forEach(p=>{p.roles=cleanRoles(p.roles);p.gkEligible=typeof p.gkEligible==='boolean'?p.gkEligible:DEFAULT_GK.has(p.name);p.active=Boolean(p.active);});
+    return s;
+  }
+  let state;
+  try {state=normalize(JSON.parse(localStorage.getItem(KEY))||fresh());} catch {state=fresh();}
+  const currentFormation = () => FORMATIONS[state.formations[state.quarter]];
+  const currentSlots = () => currentFormation().slots;
+  const name = id => state.players.find(p=>p.id===id)?.name||'미등록 선수';
+  function syncedData(){return JSON.parse(JSON.stringify({players:state.players,lineups:state.lineups,formations:state.formations,positions:state.positions,tactics:state.tactics}));}
+  function save(fromCloud=false){
+    try {localStorage.setItem(KEY,JSON.stringify(state));} catch(e){console.warn('로컬 저장 불가',e);}
+    if(!fromCloud && window.HILFU_CLOUD?.localChanged) window.HILFU_CLOUD.localChanged(syncedData());
+  }
+  window.HILFU_APP = {
+    getData:syncedData,
+    applyCloudData(data){
+      if(!data || !Array.isArray(data.players) || !Array.isArray(data.lineups) || data.lineups.length!==5)throw new Error('클라우드 데이터가 올바르지 않습니다.');
+      state=normalize({...data,quarter:state.quarter,tab:state.tab});
+      save(true);render();
+    }
+  };
+  function counts(){
+    const c={}; for(const p of state.players)c[p.id]={field:0,gk:0};
+    for(const q of state.lineups){for(const [slot,id] of Object.entries(q)){if(!id)continue;
+      if(!c[id]) c[id]={field:0,gk:0};
+      if(slot==='GK')c[id].gk++;else c[id].field++;
+    }} return c;
+  }
+  // 주 포지션 > 부 포지션 > 인접 포지션 > 미등록 포지션 우선순위.
+  // 모든 포메이션의 LCM/RCM 등은 CM처럼 대표 포지션으로 비교합니다.
+  const SLOT_PRIMARY = {ST:'CF',LST:'CF',RST:'CF',LW:'LW',RW:'RW',CAM:'CAM',LAM:'CAM',RAM:'CAM',CM:'CM',
+    LM:'LM',RM:'RM',LCM:'CM',RCM:'CM',CDM:'CDM',LCDM:'CDM',RCDM:'CDM',
+    LCB:'CB',CB:'CB',RCB:'CB',LB:'LB',RB:'RB'};
+  const ADJACENT = {
+    CF:{CAM:18,LW:24,RW:24},LW:{LM:10,RW:18,CAM:24,LB:28,CM:30},RW:{RM:10,LW:18,CAM:24,RB:28,CM:30},
+    CAM:{CM:12,CF:19,LW:22,RW:22,CDM:29},CM:{CAM:13,CDM:13,LM:20,RM:20,CB:26},
+    CDM:{CM:12,CB:15,CAM:29,LB:30,RB:30},LM:{LW:9,LB:17,CM:19,RM:29},RM:{RW:9,RB:17,CM:19,LM:29},
+    CB:{CDM:16,LB:21,RB:21,CM:26},LB:{CB:18,LM:14,RB:24,LW:26,CDM:31},RB:{CB:18,RM:14,LB:24,RW:26,CDM:31}
+  };
+  function rolePenalty(player, slot){
+    if(slot==='GK')return player.gkEligible?0:100;
+    const desired=SLOT_PRIMARY[slot];if(!desired)return 90;
+    const roles=cleanRoles(player.roles);
+    if(roles[0]===desired)return 0;
+    if(roles.includes(desired))return 6;
+    let best=90;
+    roles.forEach((r,i)=>{if(ADJACENT[desired]?.[r]!=null)best=Math.min(best,ADJACENT[desired][r]+(i?3:0));});
+    return best;
+  }
+  const fit = rolePenalty;
+  function removeFromLineups(id){for(const q of state.lineups)for(const key of Object.keys(q))if(q[key]===id)delete q[key];for(const t of state.tactics||[]){for(const key of Object.keys(t.ownPositions||{}))if((t.ownPositions[key]||{}).playerId===id)delete t.ownPositions[key];}}
+  function selectTab(tab){if(!['lineup','tactics','roster','stats'].includes(tab))return;state.tab=tab;
+    document.querySelectorAll('.tab').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.tab===tab)));
+    document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='view-'+tab));save();render();}
+  function render(){const c=counts();
+    $('totalPlayer').textContent=state.players.length;
+    $('activePlayer').textContent=state.players.filter(p=>p.active).length;
+    $('totalMin').textContent=Object.values(c).reduce((n,x)=>n+x.field,0);
+    renderLineup(c);if(state.tab==='tactics')renderTactics();if(state.tab==='roster')renderRoster(c);if(state.tab==='stats')renderStats(c);
+  }
+  function renderLineup(c){
+    $('quarterTabs').innerHTML=Array.from({length:5},(_,i)=>`<button class="qbtn ${state.quarter===i?'active':''}" data-q="${i}" aria-pressed="${state.quarter===i}">${i+1}Q</button>`).join('');
+    const formation=currentFormation(),q=state.lineups[state.quarter], overrides=state.positions[state.quarter];
+    $('formationSelect').value=state.formations[state.quarter];
+    $('formationHeading').textContent='포메이션 '+formation.name;
+    $('formationSub').textContent=formation.tagline;
+    $('tacticLabel').textContent=formation.name;
+    $('tacticText').textContent=FORMATION_GUIDES[state.formations[state.quarter]]||'공격: 포지션 간격 유지와 패스 옵션 확보. 수비: 중앙을 좁히고 압박·커버 역할을 분담하세요.';
+    $('pitchPositions').innerHTML=formation.slots.map(s=>{const p=state.players.find(p=>p.id===q[s.key]);const xy=overrides[s.key]||s;
+      return `<button type="button" class="position ${p?'':'empty'} ${p&&rolePenalty(p,s.key)>=50?'outofrole':''}" data-pos="${esc(s.key)}" style="left:${xy.x}%;top:${xy.y}%" title="${esc(s.label)}${p?' · '+esc((p.roles||[]).join(',')):''}: 탭하여 선수 선택 · 드래그하여 이동"><span class="poslabel">${esc(s.key)}${p&&rolePenalty(p,s.key)>=50?' ⚠':''}</span><span class="posname">${p?esc(p.name):'+ 배치'}</span></button>`;
+    }).join('');
+    const filled=formation.slots.filter(s=>q[s.key]).length;
+    $('qCount').textContent=filled+' / 11명';$('quarterLabel').textContent=(state.quarter+1)+'쿼터 · 25분';
+    $('filledBadge').textContent=filled===11?'편성 완료':'미완성 '+filled+'/11';
+    $('quarterSummary').innerHTML=formation.groups.map(([lbl, keys])=>`<div class="minirow"><span class="muted">${esc(lbl)}</span><b>${keys.filter(k=>q[k]).length} / ${keys.length}</b></div>`).join('');
+    const arr=state.players.filter(p=>p.active).map(p=>({field:c[p.id]?.field||0}));
+    const min=arr.length?Math.min(...arr.map(x=>x.field)):0,max=arr.length?Math.max(...arr.map(x=>x.field)):0;
+    $('minuteSummary').innerHTML=`<div class="minirow"><span class="muted">참석 선수</span><b>${arr.length}명</b></div><div class="minirow"><span class="muted">최소 필드 출전</span><b>${min}Q (${min*25}분)</b></div><div class="minirow"><span class="muted">최대 필드 출전</span><b>${max}Q (${max*25}분)</b></div><div class="minirow"><span class="muted">필드 출전 격차</span><b class="${max-min>1?'alert':''}">${max-min}Q</b></div><p class="legend">GK는 출전시간과 균등 배분 계산에서 제외합니다.</p>`;
+  }
+  function renderRoster(c){$('rosterCount').textContent='('+state.players.length+'명)';
+    $('rosterGrid').innerHTML=state.players.map(p=>`<article class="playercard ${p.active?'':'inactive'}"><div class="playerhead"><strong>${esc(p.name)}</strong><span class="chip">필드 ${c[p.id]?.field||0}Q · ${(c[p.id]?.field||0)*25}분</span></div><p class="meta">${esc(p.memo||'선수 특징 미입력')}</p><div class="roles">${p.roles?.length?p.roles.map((r,i)=>`<span class="chip ${i===0?'primary-role':''}">${i===0?'★ ':''}${esc(r)}</span>`).join(''):'<span class="chip">포지션 미입력</span>'}<span class="chip">GK ${c[p.id]?.gk||0}Q ${p.gkEligible?'· 가능':''}</span></div><div class="playerfoot"><label class="checkline"><input type="checkbox" data-active="${esc(p.id)}" ${p.active?'checked':''}>이번 경기 참석</label><button class="btn small" data-edit="${esc(p.id)}">수정</button></div></article>`).join('');}
+  function renderStats(c){
+    const pp=[...state.players].sort((a,b)=>(c[b.id]?.field||0)-(c[a.id]?.field||0)||a.name.localeCompare(b.name,'ko'));
+    $('statsBody').innerHTML=pp.map(p=>{const n=c[p.id]?.field||0,g=c[p.id]?.gk||0;
+      return `<tr><td><b>${esc(p.name)}</b></td><td>${p.active?'참석':'미참석'}</td><td>${n}Q</td><td><strong>${n*25}분</strong></td><td>${g}Q</td><td><div style="display:flex;align-items:center;gap:9px"><div class="bar" style="flex:1"><i style="width:${n*20}%"></i></div><span>${n*20}%</span></div></td></tr>`;
+    }).join('');
+  }
+  function tacticFor(qi=state.quarter){return state.tactics[qi];}
+  const mirrorY = y => 105-Number(y);
+  function tacticOwnMarker(slot){
+    const q=state.lineups[state.quarter], formation=currentFormation(), base=formation.slots.find(s=>s.key===slot), t=tacticFor(), override=t.ownPositions?.[slot];
+    const player=state.players.find(p=>p.id===q[slot]);
+    const xy=override||state.positions[state.quarter]?.[slot]||base; if(!base) return null;
+    return {slot,x:xy.x,y:xy.y,label:player?player.name:'+ 배치',sub:slot,filled:Boolean(player),playerId:player?.id||null};
+  }
+  function tacticOpponentBaseSlots(){
+    const t=tacticFor(), f=FORMATIONS[t.opponentFormation]||FORMATIONS['442'];
+    return f.slots.map(s=>({key:s.key,label:s.label,x:s.x,y:mirrorY(s.y)}));
+  }
+  function renderTactics(){
+    $('tacticQuarterTabs').innerHTML=Array.from({length:5},(_,i)=>`<button class="qbtn ${state.quarter===i?'active':''}" data-q="${i}" aria-pressed="${state.quarter===i}">${i+1}Q</button>`).join('');
+    const t=tacticFor(), our=currentFormation(), opp=FORMATIONS[t.opponentFormation]||FORMATIONS['442'], q=state.lineups[state.quarter];
+    $('tacticQuarterBadge').textContent=(state.quarter+1)+'Q';
+    $('tacticOurFormation').innerHTML=`<option>${our.name}</option>`;
+    $('opponentFormationSelect').value=t.opponentFormation;
+    $('tacticOurName').textContent=our.name;
+    $('tacticOppName').textContent=opp.name;
+    $('tacticNote').value=t.note||'';
+    const ownMarkers = our.slots.map(s=>tacticOwnMarker(s.key)).filter(Boolean);
+    const oppBase=tacticOpponentBaseSlots();
+    const oppMarkers = oppBase.map(s=>{const o=t.opponentPositions?.[s.key]||s;return {slot:s.key,x:o.x,y:o.y,label:(t.opponentLabels?.[s.key]||s.key),sub:s.key};});
+    $('tacticOwnCount').textContent=ownMarkers.filter(m=>m.filled).length+'명';
+    $('tacticOppCount').textContent=oppMarkers.length+'개';
+    $('tacticCount').textContent=`우리 ${ownMarkers.filter(m=>m.filled).length} · 상대 ${oppMarkers.length}`;
+    $('opponentLabelList').innerHTML=oppBase.map(s=>`<label class="opponent-item"><span>${esc(s.key)}</span><input type="text" data-opplabel="${esc(s.key)}" value="${esc(t.opponentLabels?.[s.key]||'')}" placeholder="${esc(s.key)}" maxlength="15" aria-label="상대 ${esc(s.key)} 이름"></label>`).join('');
+    renderTacticArrows();
+    $('tacticMarkers').innerHTML = ownMarkers.map(m=>`<button type="button" class="tactic-marker home ${m.filled?'':'empty'}" data-tpos="${esc(m.slot)}" data-side="home" style="left:${m.x}%;top:${m.y}%" title="우리 팀 ${esc(m.slot)}"><small>${esc(m.sub)}</small><b>${esc(m.label)}</b></button>`).join('') + oppMarkers.map(m=>`<button type="button" class="tactic-marker away" data-tpos="${esc(m.slot)}" data-side="away" style="left:${m.x}%;top:${m.y}%" title="상대 팀 ${esc(m.slot)} · 탭하여 라벨 수정"><small>${esc(m.sub)}</small><b>${esc(m.label)}</b></button>`).join('');
+  }
+
+  // v5: 화살표 도구는 전술 설명용 데이터에만 반영하여 실제 출전 라인업을 보존합니다.
+  const ARROW_STYLE={pass:{color:'#ffe168',dash:[]},run:{color:'#7bdcff',dash:[]},press:{color:'#ff8488',dash:[14,9]}};
+  let tacticTool='move',drawingArrow=null;
+  function setTacticTool(tool){
+    if(!['move','pass','run','press','erase'].includes(tool))return;
+    tacticTool=tool;document.querySelectorAll('[data-tactic-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tacticTool===tool)));
+    $('tacticBoard').dataset.tool=tool;
+    $('tacticStatus').textContent=tool==='move'?'말판을 이동할 수 있습니다.':tool==='erase'?'삭제할 화살표를 탭하세요.':'경기장을 드래그하면 '+({pass:'패스',run:'침투',press:'압박'}[tool])+' 화살표가 추가됩니다.';
+  }
+  function arrowMarkup(a,preview=false){
+    const style=ARROW_STYLE[a.type]||ARROW_STYLE.pass;
+    const x1=a.x1*10,y1=a.y1*10,x2=a.x2*10,y2=a.y2*10;
+    const dx=x2-x1,dy=y2-y1,d=Math.hypot(dx,dy);
+    if(d<12)return '';
+    const ux=dx/d,uy=dy/d,stem=25;
+    const ex=x2-ux*stem,ey=y2-uy*stem,wing=12;
+    const points=`${x2},${y2} ${ex-uy*wing},${ey+ux*wing} ${ex+uy*wing},${ey-ux*wing}`;
+    const dash=style.dash.length?` stroke-dasharray="${style.dash.join(' ')}"`:'';
+    return `<g opacity="${preview?.7:1}"><path d="M ${x1} ${y1} L ${ex} ${ey}" stroke="#053a36" stroke-width="12" fill="none" stroke-linecap="round"/><path d="M ${x1} ${y1} L ${ex} ${ey}" stroke="${style.color}" stroke-width="6" fill="none" stroke-linecap="round"${dash}/><polygon points="${points}" fill="${style.color}" stroke="#053a36" stroke-width="3"/></g>`;
+  }
+  function renderTacticArrows(){
+    const arrows=tacticFor().arrows||[];
+    $('tacticArrows').innerHTML=arrows.map(a=>arrowMarkup(a)).join('')+(drawingArrow?arrowMarkup(drawingArrow,true):'');
+  }
+  function tacticPointer(e){
+    const r=$('tacticBoard').getBoundingClientRect();
+    return {x:clamp((e.clientX-r.left)/r.width*100,2,98),y:clamp((e.clientY-r.top)/r.height*100,2,98)};
+  }
+  function distanceSegment(pt,a){
+    const dx=a.x2-a.x1,dy=a.y2-a.y1,denom=dx*dx+dy*dy;
+    const t=denom?clamp(((pt.x-a.x1)*dx+(pt.y-a.y1)*dy)/denom,0,1):0;
+    return Math.hypot(pt.x-(a.x1+t*dx),pt.y-(a.y1+t*dy));
+  }
+  $('tacticArrows').addEventListener('pointerdown',e=>{
+    if(tacticTool==='move')return;
+    if(e.button!==0)return;
+    e.preventDefault();
+    const at=tacticPointer(e),svg=$('tacticArrows');
+    if(tacticTool==='erase'){
+      const arr=tacticFor().arrows;
+      const options=arr.map((a,i)=>({i,dist:distanceSegment(at,a)})).sort((a,b)=>a.dist-b.dist);
+      if(options.length&&options[0].dist<5){arr.splice(options[0].i,1);save();renderTacticArrows();$('tacticStatus').textContent='화살표 한 개를 삭제했습니다.';}
+      else $('tacticStatus').textContent='화살표 가까이를 탭하면 삭제됩니다.';
+      return;
+    }
+    drawingArrow={type:tacticTool,x1:at.x,y1:at.y,x2:at.x,y2:at.y,pointerId:e.pointerId};
+    svg.setPointerCapture(e.pointerId);
+    renderTacticArrows();
+  });
+  $('tacticArrows').addEventListener('pointermove',e=>{
+    if(!drawingArrow||drawingArrow.pointerId!==e.pointerId)return;
+    const pt=tacticPointer(e);drawingArrow.x2=pt.x;drawingArrow.y2=pt.y;renderTacticArrows();
+  });
+  $('tacticArrows').addEventListener('pointerup',e=>{
+    if(!drawingArrow||drawingArrow.pointerId!==e.pointerId)return;
+    const d=drawingArrow,at=tacticPointer(e);d.x2=at.x;d.y2=at.y;drawingArrow=null;
+    if(Math.hypot(d.x2-d.x1,d.y2-d.y1)>=3){
+      const {type,x1,y1,x2,y2}=d;tacticFor().arrows.push({type,x1,y1,x2,y2});save();
+      $('tacticStatus').textContent=({pass:'패스',run:'침투',press:'압박'}[type])+' 화살표를 추가했습니다.';
+    }
+    renderTacticArrows();
+  });
+  $('tacticArrows').addEventListener('pointercancel',()=>{drawingArrow=null;renderTacticArrows();});
+  document.querySelectorAll('[data-tactic-tool]').forEach(b=>b.addEventListener('click',()=>setTacticTool(b.dataset.tacticTool)));
+  $('undoArrowBtn').onclick=()=>{if(tacticFor().arrows.length){tacticFor().arrows.pop();save();renderTacticArrows();$('tacticStatus').textContent='마지막 화살표를 되돌렸습니다.';}};
+  $('clearArrowsBtn').onclick=()=>{if(!tacticFor().arrows.length)return;if(confirm('현재 쿼터의 화살표를 모두 지울까요?')){tacticFor().arrows=[];save();renderTacticArrows();}};
+  $('opponentLabelList').addEventListener('change',e=>{
+    const input=e.target.closest('[data-opplabel]');if(!input)return;
+    tacticFor().opponentLabels[input.dataset.opplabel]=input.value.trim();save();renderTactics();
+  });
+
+  // 외부 라이브러리 없이 Canvas API로 고해상도 PNG를 만듭니다.
+  function drawTacticPng(){
+    const W=1200,H=1680,c=document.createElement('canvas');c.width=W;c.height=H;
+    const ctx=c.getContext('2d');if(!ctx)throw new Error('이미지 생성 기능을 사용할 수 없습니다.');
+    const t=tacticFor(),our=currentFormation(),opp=FORMATIONS[t.opponentFormation]||FORMATIONS['442'];
+    ctx.fillStyle='#071e23';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#75edc0';ctx.font='bold 31px sans-serif';ctx.fillText('HILFU FC · TACTICS BOARD',50,58);
+    ctx.fillStyle='#f2faf8';ctx.font='bold 36px sans-serif';ctx.fillText(`${state.quarter+1}Q  우리 ${our.name}  vs  상대 ${opp.name}`,50,114);
+    const f={x:50,y:153,w:1100,h:1250};
+    for(let i=0;i<10;i++){ctx.fillStyle=i%2===0?'#167c5a':'#187453';ctx.fillRect(f.x,f.y+f.h*i/10,f.w,f.h/10+1);}
+    ctx.strokeStyle='rgba(237,255,245,.75)';ctx.lineWidth=3;
+    ctx.strokeRect(f.x+16,f.y+15,f.w-32,f.h-30);
+    ctx.beginPath();ctx.moveTo(f.x,f.y+f.h/2);ctx.lineTo(f.x+f.w,f.y+f.h/2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(f.x+f.w/2,f.y+f.h/2,f.w*.125,f.w*.125,0,0,Math.PI*2);ctx.stroke();
+    ctx.strokeRect(f.x+f.w*.25,f.y+15,f.w*.5,f.h*.16);
+    ctx.strokeRect(f.x+f.w*.25,f.y+f.h-f.h*.16-15,f.w*.5,f.h*.16);
+    ctx.strokeRect(f.x+f.w*.37,f.y+15,f.w*.26,f.h*.07);
+    ctx.strokeRect(f.x+f.w*.37,f.y+f.h-f.h*.07-15,f.w*.26,f.h*.07);
+    const px=x=>f.x+f.w*x/100,py=y=>f.y+f.h*y/100;
+    // draw arrows below player chips
+    for(const a of t.arrows){
+      const st=ARROW_STYLE[a.type]||ARROW_STYLE.pass;
+      const x1=px(a.x1),y1=py(a.y1),x2=px(a.x2),y2=py(a.y2);
+      const ang=Math.atan2(y2-y1,x2-x1),len=Math.hypot(x2-x1,y2-y1);
+      if(len<16)continue;
+      ctx.lineCap='round';ctx.lineJoin='round';ctx.setLineDash(st.dash.map(n=>n*1.1));
+      ctx.strokeStyle='#064339';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-Math.cos(ang)*20,y2-Math.sin(ang)*20);ctx.stroke();
+      ctx.strokeStyle=st.color;ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2-Math.cos(ang)*20,y2-Math.sin(ang)*20);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=st.color;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-Math.cos(ang)*32-Math.sin(ang)*15,y2-Math.sin(ang)*32+Math.cos(ang)*15);ctx.lineTo(x2-Math.cos(ang)*32+Math.sin(ang)*15,y2-Math.sin(ang)*32-Math.cos(ang)*15);ctx.closePath();ctx.fill();
+    }
+    function chip(x,y,fill,stroke,sub,label){
+      const cx=px(x),cy=py(y),ww=112,hh=62,rad=20,xx=cx-ww/2,yy=cy-hh/2;
+      ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(xx,yy,ww,hh,rad);ctx.fill();
+      ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle='#d4ebef';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 18px sans-serif';ctx.fillText(sub,cx,cy-12,ww-7);
+      ctx.font='bold 22px sans-serif';ctx.fillStyle='#fff';ctx.fillText(label,cx,cy+14,ww-10);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }
+    const oppBase=tacticOpponentBaseSlots();
+    for(const s of oppBase){const xy=t.opponentPositions?.[s.key]||s;chip(xy.x,xy.y,'#a7471e','#ffd4ae',s.key,t.opponentLabels?.[s.key]||s.key);}
+    for(const s of our.slots){const xy=t.ownPositions?.[s.key]||state.positions[state.quarter]?.[s.key]||s;const p=state.players.find(p=>p.id===state.lineups[state.quarter]?.[s.key]);chip(xy.x,xy.y,'#0c667f','#76d9ff',s.key,p?p.name:'미배치');}
+    ctx.fillStyle='#9ecfc9';ctx.font='bold 24px sans-serif';ctx.fillText('● 우리 팀   ',50,1450);ctx.fillStyle='#f8b78a';ctx.fillText('● 상대 팀   ',235,1450);
+    ctx.fillStyle='#ffe168';ctx.fillText('→ 패스',432,1450);ctx.fillStyle='#7bdcff';ctx.fillText('→ 침투',560,1450);ctx.fillStyle='#ff8488';ctx.fillText('→ 압박',695,1450);
+    ctx.fillStyle='#f2faf8';ctx.font='bold 23px sans-serif';ctx.fillText('전술 메모',50,1510);
+    ctx.fillStyle='#d1e6e3';ctx.font='21px sans-serif';
+    const lines=(t.note||'').split(/\n/).map(x=>x.trim()).filter(Boolean).slice(0,3);
+    lines.forEach((line,i)=>ctx.fillText(line,50,1548+32*i,W-95));
+    if(!lines.length)ctx.fillText('쿼터별 전술판 이미지',50,1548);
+    return c;
+  }
+  $('saveTacticPngBtn').onclick=()=>{
+    try{
+      const canvas=drawTacticPng(),filename=`HILFU_FC_Q${state.quarter+1}_tactics.png`;
+      canvas.toBlob(blob=>{
+        if(!blob){$('tacticStatus').textContent='PNG 저장에 실패했습니다.';return;}
+        const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;
+        document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+        $('tacticStatus').textContent='PNG 파일을 만들었습니다. 휴대폰 다운로드 폴더를 확인하세요.';
+      },'image/png');
+    }catch(e){$('tacticStatus').textContent='이미지 저장 오류: '+e.message;}
+  };
+  let picking=null;
+  function slotLabel(key){return currentSlots().find(s=>s.key===key)?.label||key;}
+  function openPicker(slot){picking=slot;$('pickerTitle').textContent=slotLabel(slot)+' ('+slot+')';$('playerSearch').value='';renderCandidates();$('picker').showModal();}
+  function renderCandidates(){const txt=$('playerSearch').value.trim().toLowerCase(),q=state.lineups[state.quarter];
+    const pp=state.players.filter(p=>p.active&&p.name.toLowerCase().includes(txt)).map(p=>({...p,fitness:fit(p,picking),used:Object.values(q).includes(p.id),selected:q[picking]===p.id})).sort((a,b)=>a.fitness-b.fitness||Number(a.used)-Number(b.used)||a.name.localeCompare(b.name,'ko'));
+    $('candidateList').innerHTML=pp.length?pp.map(p=>`<button class="candidate" data-pick="${esc(p.id)}"><span><b>${esc(p.name)}</b><br><small>${esc((p.roles||[]).join(' · ')||'포지션 미입력')}${p.used&&!p.selected?' · 다른 자리에서 이동':''}</small></span><span class="reco">${p.selected?'배치됨':p.fitness===0&&picking!=='GK'?'추천':''}</span></button>`).join(''):'<div class="emptyhint">선수를 찾지 못했습니다.<br>선수 명단에서 참석 여부를 확인하세요.</div>';
+  }
+  function assign(slot,id){const q=state.lineups[state.quarter];if(id){for(const key of Object.keys(q))if(q[key]===id)delete q[key];q[slot]=id;}else delete q[slot];save();render();$('picker').close();}
+  let editing=null;
+  function updatePrimaryOptions(preferred){
+    const selected=[...document.querySelectorAll('[data-edit-role]:checked')].map(x=>x.value);
+    const select=$('editPrimaryRole'),old=preferred??select.value;
+    select.innerHTML=selected.length?selected.map(r=>`<option value="${r}">${r}</option>`).join(''):'<option value="">먼저 가능 포지션을 선택하세요</option>';
+    select.value=selected.includes(old)?old:(selected[0]||'');
+    select.disabled=!selected.length;
+  }
+  function openEditor(id){
+    const p=state.players.find(p=>p.id===id);editing=p?.id||null;
+    $('editorTitle').textContent=p?'선수 정보 수정':'선수 추가';
+    $('editName').value=p?.name||'';$('editMemo').value=p?.memo||'';
+    $('editGKEligible').checked=Boolean(p?.gkEligible);
+    $('editRoleChoices').innerHTML=ROLE_OPTIONS.map(r=>`<label class="role-option"><input type="checkbox" data-edit-role value="${r}" ${(p?.roles||[]).includes(r)?'checked':''}><span>${r}</span></label>`).join('');
+    updatePrimaryOptions(p?.roles?.[0]);$('deletePlayer').hidden=!p;$('editor').showModal();
+  }
+  function sampleQ1(){const lineup={GK:'선수02',LB:'선수13',LCB:'선수12',RCB:'선수05',RB:'선수09',CDM:'선수01',LCM:'선수14',RCM:'선수15',LW:'선수10',ST:'선수06',RW:'선수11'};
+    const q={}; for(const [key,n] of Object.entries(lineup)){const p=state.players.find(p=>p.name===n&&p.active);if(p)q[key]=p.id;}
+    state.formations[0]='433';state.positions[0]={};state.lineups[0]=q;state.tactics[0].ownPositions={};state.quarter=0;save();render();}
+  function changeFormation(id){if(!FORMATIONS[id])return;
+    const qi=state.quarter,old=FORMATIONS[state.formations[qi]],next=FORMATIONS[id];if(old===next)return;
+    const existing=state.lineups[qi],out={},consumed=new Set();
+    // 같은 포지션은 유지, 나머지는 적성과 기존의 경기장 위치를 고려해 재배치
+    for(const s of next.slots)if(existing[s.key]){out[s.key]=existing[s.key];consumed.add(existing[s.key]);}
+    const leftovers=old.slots.filter(s=>existing[s.key]&&!consumed.has(existing[s.key]));
+    for(const item of leftovers){const id0=existing[item.key],p=state.players.find(x=>x.id===id0);if(!p)continue;
+      let best=null,bestScore=Infinity;
+      for(const slot of next.slots){if(out[slot.key])continue;if(slot.key==='GK'&&item.key!=='GK')continue;
+        const targetDist=Math.hypot((slot.x-item.x)/2,(slot.y-item.y));
+        const score=fit(p,slot.key)*2+targetDist;if(score<bestScore){bestScore=score;best=slot;}
+      }
+      if(best){out[best.key]=id0;consumed.add(id0);}
+    }
+    state.formations[qi]=id;state.lineups[qi]=out;state.positions[qi]={};save();render();
+  }
+  // 5쿼터 전체를 동시 최적화: 각 쿼터·선수 중복 방지 + 포지션 적합성 + 필드 출전 균형.
+  // 슬롯→쿼터별 선수→실제 선수→싱크 최단 비용 유량 네트워크.
+  function globallyOptimizeField(lineups,people){
+    const nPlayers=people.length,base=Math.floor(50/nPlayers);
+    const usedGK=Object.fromEntries(people.map(p=>[p.id,0]));
+    lineups.forEach(q=>usedGK[q.GK]++);
+    const allSlots=[];
+    for(let qi=0;qi<5;qi++)FORMATIONS[state.formations[qi]].slots.filter(s=>s.key!=='GK').forEach(s=>allSlots.push({qi,slot:s.key}));
+    const N=1+allSlots.length+5*nPlayers+nPlayers+1,source=0,sink=N-1;
+    const slotStart=1,pqStart=slotStart+allSlots.length,globalStart=pqStart+5*nPlayers;
+    const graph=Array.from({length:N},()=>[]);
+    function edge(from,to,cap,cost){
+      const f={to,cap,cost,rev:graph[to].length};
+      const r={to:from,cap:0,cost:-cost,rev:graph[from].length};
+      graph[from].push(f);graph[to].push(r);
+      return f;
+    }
+    const assignmentEdges=[];
+    allSlots.forEach(({qi,slot},si)=>{
+      const sn=slotStart+si;edge(source,sn,1,0);
+      const row=[];
+      people.forEach((p,pi)=>{
+        if(p.id===lineups[qi].GK)return;
+        const score=rolePenalty(p,slot);
+        const e=edge(sn,pqStart+qi*nPlayers+pi,1,score*10+pi*.01);
+        row.push({edge:e,playerId:p.id});
+      });
+      assignmentEdges.push(row);
+    });
+    for(let qi=0;qi<5;qi++)people.forEach((p,pi)=>{
+      if(p.id!==lineups[qi].GK)edge(pqStart+qi*nPlayers+pi,globalStart+pi,1,0);
+    });
+    people.forEach((p,pi)=>{
+      const available=5-usedGK[p.id],to=sink,from=globalStart+pi;
+      const mandatory=Math.min(base,available);
+      if(mandatory)edge(from,to,mandatory,0);
+      for(let nth=mandatory;nth<available;nth++){
+        // 먼저 모든 선수의 기본 출전 몫을 채우고, 나머지는 포지션 적합성이 높은 선수에게 배정.
+        // 한 사람이 계속 많이 나오는 것을 방지하기 위해 추가 몫마다 비용이 증가.
+        edge(from,to,1,2500+(nth-mandatory)*4500);
+      }
+    });
+    // 모든 초기 정방향 비용은 0 이상. 잠재력 기반 최단 경로로 각 필드 자리 50개를 채운다.
+    const potential=Array(N).fill(0);
+    let flow=0;
+    while(flow<allSlots.length){
+      const dist=Array(N).fill(Infinity),used=Array(N).fill(false);
+      const prevNode=Array(N).fill(-1),prevEdge=Array(N).fill(-1);
+      dist[source]=0;
+      for(let rep=0;rep<N;rep++){
+        let from=-1;
+        for(let i=0;i<N;i++)if(!used[i] && (from<0||dist[i]<dist[from]))from=i;
+        if(from<0||!Number.isFinite(dist[from]))break;
+        used[from]=true;if(from===sink)break;
+        graph[from].forEach((e,ei)=>{
+          if(e.cap<=0)return;
+          const candidate=dist[from]+e.cost+potential[from]-potential[e.to];
+          if(candidate < dist[e.to]-1e-8){dist[e.to]=candidate;prevNode[e.to]=from;prevEdge[e.to]=ei;}
+        });
+      }
+      if(!Number.isFinite(dist[sink]))break;
+      for(let i=0;i<N;i++)if(Number.isFinite(dist[i]))potential[i]+=dist[i];
+      let v=sink;
+      while(v!==source){const u=prevNode[v],e=graph[u][prevEdge[v]];e.cap--;graph[v][e.rev].cap++;v=u;}
+      flow++;
+    }
+    if(flow!==50)throw Error('5쿼터 필드 배치를 완성하지 못했습니다.');
+    allSlots.forEach(({qi,slot},si)=>{
+      const found=assignmentEdges[si].find(o=>o.edge.cap===0);
+      if(!found)throw Error('포지션 매칭 결과가 불완전합니다.');
+      lineups[qi][slot]=found.playerId;
+    });
+    return lineups;
+  }
+  function autoAssign(){
+    const people=state.players.filter(p=>p.active);
+    if(people.length<11){alert('자동 편성은 참석 선수 11명 이상이 필요합니다.');return;}
+    const keepers=people.filter(p=>p.gkEligible);
+    if(!keepers.length){alert('GK 출전 가능 선수가 없습니다. 선수 수정에서 한 명 이상 GK 로테이션 가능을 체크해 주세요.');return;}
+    if(state.lineups.some(q=>Object.keys(q).length)&&!confirm('기존 5쿼터 라인업을 모두 새 편성으로 바꿀까요? 각 쿼터의 포메이션은 유지됩니다.'))return;
+    const gkUsed=Object.fromEntries(keepers.map(p=>[p.id,0]));
+    const lineups=[];let prevGK=null;
+    for(let qi=0;qi<5;qi++){
+      const keeper=[...keepers].sort((a,b)=>gkUsed[a.id]-gkUsed[b.id]||Number(a.id===prevGK)-Number(b.id===prevGK)||people.indexOf(a)-people.indexOf(b))[0];
+      gkUsed[keeper.id]++;prevGK=keeper.id;
+      lineups.push({GK:keeper.id});
+    }
+    try{globallyOptimizeField(lineups,people);}catch(err){alert('자동 편성 오류: '+err.message);return;}
+    state.lineups=lineups;state.positions=Array.from({length:5},()=>({}));state.quarter=0;save();render();
+    const unsuitable=lineups.reduce((n,q)=>n+Object.entries(q).filter(([slot,id])=>slot!=='GK'&&rolePenalty(people.find(p=>p.id===id),slot)>=50).length,0);
+    if(unsuitable)alert(`5쿼터 편성을 완료했습니다. 가능한 포지션 외 배치가 ${unsuitable}곳 있으니, 해당 선수의 가능 포지션을 보완하거나 수동 조정해 주세요.`);
+  }
+  // 터치스크린과 마우스 공통 드래그: 빈 공간에 놓으면 자유 이동, 다른 칸 위에 놓으면 선수 교환
+  let drag=null,ignoreClickUntil=0;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const pct=(event,rect)=>({x:clamp((event.clientX-rect.left)/rect.width*100,10,90),y:clamp((event.clientY-rect.top)/rect.height*100,10,93)});
+  $('pitchPositions').addEventListener('pointerdown',e=>{
+    const el=e.target.closest('.position');if(!el||e.button>0)return;
+    const pitch=el.closest('.pitch');if(!pitch)return;
+    const slot=el.dataset.pos,xy=state.positions[state.quarter][slot]||currentSlots().find(s=>s.key===slot);
+    drag={el,pitch,slot,qi:state.quarter,startX:e.clientX,startY:e.clientY,x:xy.x,y:xy.y,moved:false};
+    el.setPointerCapture(e.pointerId);
+  });
+  $('pitchPositions').addEventListener('pointermove',e=>{
+    if(!drag||drag.el!==e.target.closest('.position')||drag.qi!==state.quarter)return;
+    const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;
+    if(!drag.moved&&Math.hypot(dx,dy)<7)return;
+    drag.moved=true;drag.el.classList.add('dragging');
+    const r=drag.pitch.getBoundingClientRect();
+    drag.x=clamp(drag.x+dx/r.width*100,10,90);drag.y=clamp(drag.y+dy/r.height*100,10,93);
+    drag.el.style.left=drag.x+'%';drag.el.style.top=drag.y+'%';drag.startX=e.clientX;drag.startY=e.clientY;
+  });
+  const endDrag=e=>{
+    if(!drag)return;const d=drag;drag=null;d.el.classList.remove('dragging');
+    if(!d.moved)return;
+    ignoreClickUntil=Date.now()+400;
+    const q=state.lineups[d.qi],overrides=state.positions[d.qi],slots=FORMATIONS[state.formations[d.qi]].slots;
+    const target=slots.filter(s=>s.key!==d.slot).map(s=>({slot:s,xy:overrides[s.key]||s})).sort((a,b)=>Math.hypot(a.xy.x-d.x,a.xy.y-d.y)-Math.hypot(b.xy.x-d.x,b.xy.y-d.y))[0];
+    if(target&&Math.abs(target.xy.x-d.x)<9&&Math.abs(target.xy.y-d.y)<8){
+      const a=q[d.slot],b=q[target.slot.key];
+      if(b)q[d.slot]=b;else delete q[d.slot];
+      if(a)q[target.slot.key]=a;else delete q[target.slot.key];
+    }else overrides[d.slot]={x:Math.round(d.x*10)/10,y:Math.round(d.y*10)/10};
+    save();render();
+  };
+  $('pitchPositions').addEventListener('pointerup',endDrag);
+  $('pitchPositions').addEventListener('pointercancel',()=>{if(drag){drag.el.classList.remove('dragging');drag=null;render();}});
+  let tacticDrag=null,tacticIgnoreClickUntil=0;
+  $('tacticMarkers').addEventListener('pointerdown',e=>{
+    const el=e.target.closest('.tactic-marker');if(!el||e.button>0)return;
+    const pitch=$('tacticBoard');if(!pitch)return;
+    tacticDrag={el,pitch,slot:el.dataset.tpos,side:el.dataset.side,qi:state.quarter,startX:e.clientX,startY:e.clientY,x:parseFloat(el.style.left),y:parseFloat(el.style.top),moved:false};
+    el.setPointerCapture(e.pointerId);
+  });
+  $('tacticMarkers').addEventListener('pointermove',e=>{
+    if(!tacticDrag||tacticDrag.el!==e.target.closest('.tactic-marker')||tacticDrag.qi!==state.quarter)return;
+    const dx=e.clientX-tacticDrag.startX,dy=e.clientY-tacticDrag.startY;
+    if(!tacticDrag.moved&&Math.hypot(dx,dy)<7)return;
+    tacticDrag.moved=true;tacticDrag.el.classList.add('dragging');
+    const r=tacticDrag.pitch.getBoundingClientRect();
+    tacticDrag.x=clamp(tacticDrag.x+dx/r.width*100,7,93);tacticDrag.y=clamp(tacticDrag.y+dy/r.height*100,8,92);
+    tacticDrag.el.style.left=tacticDrag.x+'%';tacticDrag.el.style.top=tacticDrag.y+'%';tacticDrag.startX=e.clientX;tacticDrag.startY=e.clientY;
+  });
+  const endTacticDrag=()=>{
+    if(!tacticDrag)return;const d=tacticDrag;tacticDrag=null;d.el.classList.remove('dragging');
+    if(!d.moved)return;
+    tacticIgnoreClickUntil=Date.now()+400;
+    const t=tacticFor(d.qi);
+    const bucket=d.side==='home'?(t.ownPositions||(t.ownPositions={})):(t.opponentPositions||(t.opponentPositions={}));
+    bucket[d.slot]={x:Math.round(d.x*10)/10,y:Math.round(d.y*10)/10};
+    save();render();
+  };
+  $('tacticMarkers').addEventListener('pointerup',endTacticDrag);
+  $('tacticMarkers').addEventListener('pointercancel',()=>{if(tacticDrag){tacticDrag.el.classList.remove('dragging');tacticDrag=null;render();}});
+  // BAND 스크린샷: '참석' 투표 구역에 들어간 이름만 인정 (불참/미정/미투표 제외).
+  // 헤더가 보이지 않거나 불명확하면 안전하게 0명 자동 체크: 사용자가 텍스트/체크를 수동 보정.
+  let ocrText='',ocrChecked=new Set();
+  function nameKey(text){return String(text||'').replace(/[\s\u200b\u00a0·.,()\[\]【】「」『』"'\-_*]/g,'').toLowerCase();}
+  function levenshtein(a,b){const dp=Array.from({length:a.length+1},(_,i)=>[i]);for(let j=1;j<=b.length;j++)dp[0][j]=j;
+    for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)dp[i][j]=Math.min(dp[i-1][j]+1,dp[i][j-1]+1,dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return dp[a.length][b.length];}
+  function sectionType(line){
+    const x=line.trim().replace(/^[\s\d.·•▶▷●○◉✓✔✅☑\-]+/,'').replace(/[：:|]/g,' ').trim();
+    if(/^(?:불참|미참석|참석\s*안\s*함|참석\s*불가|미정|미투표|미응답|불가능|아직\s*투표하지\s*않은|투표\s*안\s*함)(?:\s|$|\(|\[|\d)/.test(x))return 'exclude';
+    if(/^(?:참석|참가)(?:(?:자|명단|인원|회원|자\s*명단)?)(?:\s|$|\(|\[|\d)/.test(x))return 'include';
+    return null;
+  }
+  function sectionTail(line,type){
+    // '참석 (12명) 선수01 선수03'처럼 제목과 이름이 한 줄에 OCR된 경우를 지원.
+    const section=type==='include'?'(?:참석|참가)':'(?:불참|미참석|미정|미투표|미응답|불가능)';
+    return line.replace(new RegExp('^\\s*'+section+'(?:자|명단|인원|회원|자\\s*명단)?\\s*(?:[:：|·-]?\\s*(?:\\(?[0-9]+\\s*명?\\)?)?)?\\s*'), '').trim();
+  }
+  function detectNames(text){
+    const lines=String(text||'').replace(/\r/g,'').split(/\n/);
+    let mode='outside',hasAttendance=false,hasOtherSections=false;
+    const detected=new Set(),uncertain=[];
+    const entries=state.players.map(p=>({...p,norm:nameKey(p.name)}));
+    for(const raw of lines){
+      let line=raw.trim();if(!line)continue;
+      if(/^(?:댓글|의견|좋아요|이전\s*투표|투표\s*종료|투표\s*현황|더\s*보기|답글|알림|전체\s*보기)(?:\s|$|\()/i.test(line)){mode='outside';continue;}
+      const type=sectionType(line);
+      if(type){mode=type;hasAttendance ||= type==='include';hasOtherSections ||= type==='exclude';line=sectionTail(line,type);if(!line)continue;}
+      // 다음 투표 분류를 만난 뒤에는 '참석' 외의 이름을 전혀 검색하지 않습니다.
+      if(mode!=='include')continue;
+      // '불참' 등이 참석자 이름 옆에 한 줄에 붙은 경우 뒷부분을 무조건 제외.
+      line=line.split(/(?:불참|미참석|미정|미투표|미응답|참석\s*불가|투표하지\s*않은)/)[0];
+      // 실제 참여자 이름을 포함하지 않는 설명 문장에서는 잘못 인식하지 않도록 간략한 행만 허용.
+      const slim=nameKey(line);if(!slim||line.length>75)continue;
+      for(const p of entries)if(p.norm&&slim.includes(p.norm))detected.add(p.id);
+      if(!entries.some(p=>p.norm&&slim.includes(p.norm))){
+        for(const token of line.match(/[가-힣]{2,4}/g)||[]){
+          if(/^(참석|참가|참여|확인|명단|이름|관리|불참|활동|응답|멤버|초대|투표|대상)$/.test(token))continue;
+          const close=entries.filter(p=>p.norm.length>=3&&Math.abs(p.norm.length-token.length)<=1&&levenshtein(p.norm,token)===1);
+          if(close.length===1)uncertain.push(`${token} → ${close[0].name}`);
+        }
+      }
+    }
+    return {ids:detected,uncertain:[...new Set(uncertain)].slice(0,12),hasAttendance,hasOtherSections};
+  }
+  function showRecognition(text){
+    ocrText=text;$('ocrEditable').value=text;
+    const result=detectNames(text);ocrChecked=new Set(result.ids);
+    $('ocrResult').hidden=false;
+    $('ocrMatches').innerHTML=state.players.map(p=>`<label class="ocr-name ${ocrChecked.has(p.id)?'matched':''}"><input type="checkbox" data-ocr-name="${esc(p.id)}" ${ocrChecked.has(p.id)?'checked':''}><span>${esc(p.name)}</span></label>`).join('');
+    $('ocrResultCount').textContent=`참석 투표자 ${ocrChecked.size}명 자동 인식`;
+    $('ocrUncertain').textContent=result.uncertain.length?'참석 구역에서 이름 오탈자 의심 (자동 체크하지 않음): '+result.uncertain.join(', '):'';
+    $('ocrSectionNote').innerHTML=!result.hasAttendance?
+      '<div class="ocr-empty-message">‘참석’ 구역 제목을 찾지 못해 자동 선택을 하지 않았습니다. 위 텍스트에 ‘참석’과 투표자 이름을 줄별로 입력하거나, 아래에서 직접 체크하세요.</div>':
+      result.ids.size===0?'<div class="ocr-empty-message">‘참석’ 구역은 찾았지만 등록된 선수 이름과 일치하지 않았습니다. 인식한 이름을 확인·수정하세요.</div>':
+      `‘참석’ 구역에서만 ${result.ids.size}명을 찾았습니다. ${result.hasOtherSections?'불참·미정 등 다른 구역은 제외했습니다.':'다른 투표 구역은 발견되지 않았습니다.'} 체크 결과를 확인하세요.`;
+    $('applyAttendance').disabled=ocrChecked.size===0;
+  }
+  function ocrStatus(txt){$('ocrStatus').textContent=txt;}
+  function loadTesseract(){return new Promise((resolve,reject)=>{
+    if(window.Tesseract){resolve(window.Tesseract);return;}
+    const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    script.onload=()=>window.Tesseract?resolve(window.Tesseract):reject(new Error('OCR 구성요소를 불러오지 못했습니다.'));
+    script.onerror=()=>reject(new Error('OCR 라이브러리에 접속할 수 없습니다. 인터넷 연결을 확인해 주세요.'));
+    document.head.appendChild(script);
+  });}
+  async function recognizeScreenshot(file){
+    $('ocrReadBtn').disabled=true;ocrStatus('한국어 OCR 구성요소 준비 중… (처음에는 다운로드가 필요합니다)');
+    let worker;
+    try{
+      const api=await loadTesseract();
+      worker=await api.createWorker('kor+eng',1,{logger:m=>{
+        if(m.status==='recognizing text')ocrStatus(`글자 인식 중… ${Math.floor((m.progress||0)*100)}%`);
+        else if(m.status==='loading language traineddata')ocrStatus('한국어 모델 다운로드 중…');
+      }});
+      const {data}=await worker.recognize(file);
+      showRecognition(data.text||'');ocrStatus('글자 인식 완료 · 이름 체크 결과를 확인하세요.');
+    }catch(err){ocrStatus('자동 인식 실패: '+err.message+' · 아래에 명단을 직접 입력해 분석할 수 있습니다.');
+    }finally{if(worker)await worker.terminate().catch(()=>{});$('ocrReadBtn').disabled=false;}
+  }
+  document.querySelectorAll('[data-tab]').forEach(el=>el.addEventListener('click',()=>selectTab(el.dataset.tab)));
+  document.body.addEventListener('click',e=>{
+    const tab=e.target.closest('[data-go]');if(tab){selectTab(tab.dataset.go);return;}
+    const q=e.target.closest('[data-q]');if(q){state.quarter=Number(q.dataset.q);save();render();return;}
+    const slot=e.target.closest('[data-pos]');if(slot){if(Date.now()<ignoreClickUntil)return;openPicker(slot.dataset.pos);return;}
+    const tacticMarker=e.target.closest('[data-tpos]');if(tacticMarker){if(Date.now()<tacticIgnoreClickUntil)return; if(tacticMarker.dataset.side==='away'){const t=tacticFor(); const key=tacticMarker.dataset.tpos; const current=t.opponentLabels?.[key]||key; const next=prompt(key+' 상대 말판 라벨을 입력하세요.', current); if(next!==null){t.opponentLabels[key]=next.trim()||key; save(); render();}} return;}
+    const pick=e.target.closest('[data-pick]');if(pick){assign(picking,pick.dataset.pick);return;}
+    const edit=e.target.closest('[data-edit]');if(edit){openEditor(edit.dataset.edit);return;}
+  });
+  document.body.addEventListener('change',e=>{
+    const c=e.target.closest('[data-active]');if(c){const p=state.players.find(p=>p.id===c.dataset.active);if(p){p.active=c.checked;if(!p.active)removeFromLineups(p.id);save();render();}return;}
+    const o=e.target.closest('[data-ocr-name]');if(o){if(o.checked)ocrChecked.add(o.dataset.ocrName);else ocrChecked.delete(o.dataset.ocrName);$('ocrResultCount').textContent=`${ocrChecked.size}명 선택됨 · 적용 버튼으로 반영`;$('applyAttendance').disabled=ocrChecked.size===0;o.closest('.ocr-name').classList.toggle('matched',o.checked);}
+  });
+  $('formationSelect').addEventListener('change',e=>changeFormation(e.target.value));
+  $('opponentFormationSelect').addEventListener('change',e=>{tacticFor().opponentFormation=e.target.value;tacticFor().opponentPositions={};save();render();});
+  $('tacticNote').addEventListener('input',e=>{tacticFor().note=e.target.value;save();});
+  $('resetTacticOwnBtn').onclick=()=>{tacticFor().ownPositions={};save();render();};
+  $('resetOpponentBtn').onclick=()=>{const t=tacticFor();t.opponentPositions={};t.opponentLabels={};save();render();};
+  $('copyQuarterNoteBtn').onclick=()=>{const own=currentFormation().name, opp=(FORMATIONS[tacticFor().opponentFormation]||FORMATIONS['442']).name; const text=`${state.quarter+1}쿼터 ${own} vs 상대 ${opp}\n- 빌드업 시작 위치: GK, CB, CDM의 삼각형 형성\n- 상대 1차 압박 방향과 우리 탈압박 루트 확인\n- 빠른 윙 대응 시 SB-근처 CB 협력수비\n- 공격 시 윙 폭 유지 / 중원 하프스페이스 침투`; $('tacticNote').value=text; tacticFor().note=text; save();};
+  $('editRoleChoices').addEventListener('change',e=>{if(e.target.matches('[data-edit-role]'))updatePrimaryOptions();});
+  $('resetPositionBtn').onclick=()=>{state.positions[state.quarter]={};save();render();};
+  $('closePicker').onclick=$('cancelPicker').onclick=()=>$('picker').close();
+  $('playerSearch').addEventListener('input',renderCandidates);
+  $('removePosition').onclick=()=>assign(picking,null);
+  $('addPlayer').onclick=()=>openEditor(null);
+  $('closeEditor').onclick=()=>$('editor').close();
+  $('editorForm').addEventListener('submit',e=>{e.preventDefault();const value=$('editName').value.trim();if(!value)return;
+    if(state.players.some(p=>p.name===value&&p.id!==editing)){alert('이미 등록된 선수 이름입니다.');return;}
+    const selected=[...document.querySelectorAll('[data-edit-role]:checked')].map(x=>x.value),primary=$('editPrimaryRole').value;
+    const roles=primary?[primary,...selected.filter(r=>r!==primary)]:selected,memo=$('editMemo').value.trim(),gkEligible=$('editGKEligible').checked;
+    if(editing)Object.assign(state.players.find(p=>p.id===editing),{name:value,roles,memo,gkEligible});
+    else state.players.push({id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:value,roles,memo,gkEligible,active:true});
+    save();render();$('editor').close();
+  });
+  $('deletePlayer').onclick=()=>{if(!editing)return;const p=state.players.find(p=>p.id===editing);
+    if(!confirm(p.name+' 선수를 삭제할까요? 라인업에서도 제거됩니다.'))return;
+    state.players=state.players.filter(p=>p.id!==editing);removeFromLineups(editing);save();render();$('editor').close();
+  };
+  $('sampleBtn').onclick=()=>{if(Object.keys(state.lineups[0]).length&&!confirm('1쿼터 라인업을 예시 편성으로 교체할까요?'))return;sampleQ1();};
+  $('autoBtn').onclick=autoAssign;
+  $('clearBtn').onclick=()=>{if(!Object.keys(state.lineups[state.quarter]).length||confirm((state.quarter+1)+'쿼터 배치를 모두 비울까요?')){state.lineups[state.quarter]={};save();render();}};
+  $('resetBtn').onclick=()=>{if(confirm('모든 수정사항을 삭제하고 초기 선수 명단으로 되돌릴까요?')){state=fresh();save();selectTab('lineup');}};
+  $('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({version:6,exportedAt:new Date().toISOString(),...state},null,2)],{type:'application/json'});
+    const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='hilfu_fc_backup_'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),2000);};
+  $('importBtn').onclick=()=>$('importFile').click();
+  $('importFile').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;
+    try{const obj=JSON.parse(await file.text());if(!Array.isArray(obj.players)||!Array.isArray(obj.lineups)||obj.lineups.length!==5||!obj.players.every(p=>typeof p.id==='string'&&typeof p.name==='string'&&Array.isArray(p.roles))||!obj.lineups.every(q=>q&&typeof q==='object'&&!Array.isArray(q)))throw new Error('데이터 형식이 올바르지 않습니다.');
+      if(confirm('현재 데이터를 백업 파일로 교체할까요?')){state=normalize({...obj,players:obj.players.map(p=>({...p,active:Boolean(p.active),roles:p.roles.map(String)})),quarter:0,tab:'lineup'});save();selectTab('lineup');}
+    }catch(err){alert('불러오기 실패: '+err.message);} e.target.value='';};
+  $('openOcr').onclick=()=>{$('ocrDialog').showModal();};
+  $('closeOcr').onclick=()=>$('ocrDialog').close();
+  $('ocrFile').onchange=e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    if(!file.type.startsWith('image/')){ocrStatus('이미지 파일을 선택하세요.');return;}
+    const preview=$('ocrPreview');if(preview.dataset.url)URL.revokeObjectURL(preview.dataset.url);
+    preview.src=URL.createObjectURL(file);preview.dataset.url=preview.src;preview.hidden=false;
+    $('ocrResult').hidden=true;recognizeScreenshot(file);
+  };
+  $('ocrReadBtn').onclick=()=>{const file=$('ocrFile').files?.[0];if(!file){ocrStatus('먼저 스크린샷 파일을 선택하세요.');return;}recognizeScreenshot(file);};
+  $('ocrAnalyzeBtn').onclick=()=>{showRecognition($('ocrEditable').value);ocrStatus('명단을 다시 분석했습니다.');};
+  $('applyAttendance').onclick=()=>{
+    const chosen=new Set(ocrChecked);if(!chosen.size){alert('참석 선수를 한 명 이상 선택하세요.');return;}
+    if(!confirm(`선택한 ${chosen.size}명만 이번 경기 참석으로 체크합니다. 나머지 선수는 미참석으로 변경하고 기존 5쿼터 배치에서도 제거할까요?`))return;
+    state.players.forEach(p=>{p.active=chosen.has(p.id);if(!p.active)removeFromLineups(p.id);});
+    save();selectTab('roster');$('ocrDialog').close();
+  };
+  selectTab(state.tab);
+})();
+
+</script>
+
+<dialog id="syncDialog"><div class="dlgbody">
+  <div class="dlghead"><div><h3>☁ 힐푸FC 실시간 동기화</h3><p>같은 Google 계정으로 로그인한 휴대폰과 갤럭시탭에서 동일한 데이터를 사용합니다.</p></div><button type="button" class="close" id="closeSyncDialog" aria-label="닫기">×</button></div>
+  <div id="cloudStatus" role="status">Firebase 설정 확인 중…</div>
+  <div id="cloudConfigHelp" class="syncblock" hidden><b>Firebase 프로젝트 연결 필요</b><p>GitHub 저장소의 <code>firebase-config.js</code>에 Firebase 웹 앱 설정값을 입력한 뒤 다시 열어주세요. Google 로그인과 Cloud Firestore도 활성화해야 합니다.</p></div>
+  <div id="cloudSignedOut" class="syncblock" hidden><b>Google 로그인</b><p>동일한 계정으로 로그인하면 여러 기기에서 같은 내 데이터에 접근할 수 있습니다. 기본적으로 다른 사람 계정은 내 데이터를 볼 수 없습니다.</p><div class="sync-actions"><button type="button" id="cloudLoginBtn" class="btn primary">Google로 로그인</button></div></div>
+  <div id="cloudSignedIn" class="syncblock" hidden><b id="cloudAccount">계정 연결됨</b><p id="cloudSyncState">클라우드 상태 확인 중…</p><div class="sync-actions"><button type="button" id="cloudLogoutBtn" class="btn">로그아웃 (로컬 데이터 유지)</button></div></div>
+  <div id="cloudChoose" class="syncblock" hidden><b id="cloudChoiceTitle">첫 동기화 방법 선택</b><p id="cloudChoiceMessage">기존 데이터 보존을 위해 어느 데이터를 사용할지 선택하세요.</p><div class="sync-actions"><button type="button" id="cloudUseRemote" class="btn">☁ 클라우드 데이터 가져오기</button><button type="button" id="cloudUploadLocal" class="btn primary">↑ 이 기기 데이터 올리기</button></div></div>
+  <p class="syncnote">동기화 대상: 선수 정보 · 참석 명단 · 5쿼터 라인업 · 전술판 위치 · 화살표 · 메모. 현재 보고 있는 탭/쿼터는 기기별로 유지됩니다. 여러 기기에서 동시에 수정하면 마지막으로 서버에 저장된 내용이 우선할 수 있습니다.</p>
+  <p class="syncnote">안전한 사용을 위해 초기 연결 전 <b>↓ 데이터 백업</b>을 권장합니다. Firebase 설정값은 웹 앱용 공개 설정이며 <b>서비스 계정 키·비밀번호·관리자 비밀키</b>는 절대로 웹페이지에 넣지 않습니다.</p>
+</div></dialog>
+<script src="firebase-config.js"></script>
+<script type="module" src="firebase-sync.js"></script>
+</body>
+</html>

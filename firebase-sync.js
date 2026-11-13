@@ -1,4 +1,4 @@
-// HILFU FC v8 - Firebase Authentication + Cloud Firestore, GitHub Pages 호환 ESM
+// HILFU FC v8.2 - Firebase Authentication + Cloud Firestore, GitHub Pages 호환 ESM
 // Firebase 프로젝트의 공개 web config는 firebase-config.js에 있습니다.
 const $ = id => document.getElementById(id);
 const d = $('syncDialog');
@@ -20,8 +20,16 @@ function setStatus(message,kind=''){
   badge.textContent=kind==='online'?'연결됨':kind==='warn'?'확인 필요':'미연결';
   badge.className='syncbadge'+(kind==='online'?' online':kind==='warn'?' warn':'');
   if(currentUser) $('cloudSyncState').textContent=message;
+  const phase = /저장 실패|연결 실패|오류|충돌|확인 필요|동기화 실패|로그인 확인 실패/i.test(message)?'error'
+    : /저장 완료/.test(message)?'saved'
+    : /저장 중/.test(message)?'saving'
+    : /저장 대기|선택하세요/.test(message)?'pending'
+    : kind==='online'?'synced':'idle';
+  window.HILFU_SYNC_UI?.set('personal',phase,message,{clearSaved:!currentUser});
+  // 개인 동기화 준비 상태가 바뀌면 복사 버튼 활성 상태도 즉시 갱신합니다.
+  if(window.HILFU_TEAM) setTeamButtons();
 }
-const setVisible = (element,visible) => {element.hidden=!visible;};
+const setVisible = (element,visible) => {element.hidden=!visible;if(element===choosePanel && window.HILFU_TEAM)setTeamButtons();};
 function pendingCount(){return JSON.parse(localStorage.getItem('hilfu-fc-app-v1')||'{}')?.players?.length||0;}
 function choose(title,message,remoteExists){
   setVisible(choosePanel,true);$('cloudChoiceTitle').textContent=title;$('cloudChoiceMessage').textContent=message;
@@ -60,7 +68,7 @@ async function flush(){
     if(!localDirty)setStatus('실시간 동기화 연결됨 · 변경사항 저장 완료','online');
   }catch(error){
     localDirty=true;setStatus('저장 실패: '+error.message+' · 인터넷/Firestore 규칙을 확인해 주세요.','warn');
-  }finally{writeRunning=false;if(localDirty&&syncReady())pendingTimer=setTimeout(flush,3000);}
+  }finally{writeRunning=false;if(localDirty&&syncReady())pendingTimer=setTimeout(flush,3000);if(window.HILFU_TEAM)setTeamButtons();}
 }
 window.HILFU_CLOUD={
   localChanged(data){
@@ -176,7 +184,15 @@ let teamUser=null,teamRef=null,aclRef=null,teamActive=false,teamRole='viewer';
 let teamUnsub=null,aclUnsub=null,aclEmails=[],teamKnown=null,teamRevision=0;
 let teamLastSig=null,teamDirty=false,teamWriting=false,teamTimer=null,teamConflict=false;
 const teamStatusEl=$('teamStatus');
-const setTeamStatus=(message)=>{teamStatusEl.textContent=message;};
+const setTeamStatus=(message)=>{
+  teamStatusEl.textContent=message;
+  const phase = /실패|오류|충돌|권한 없음|접근할 수 없/.test(message)?'error'
+    : /저장 완료|반영했습니다|복사했습니다/.test(message)?'saved'
+    : /저장 중|저장하는 중/.test(message)?'saving'
+    : /저장 대기|저장되지 않은|변경사항 저장 대기/.test(message)?'pending'
+    : /연결됨|실시간 갱신/.test(message)?'synced':'idle';
+  window.HILFU_SYNC_UI?.set('team',phase,message,{clearSaved:!teamUser});
+};
 const validTeamData=(data)=>data&&Array.isArray(data.players)&&Array.isArray(data.lineups)&&data.lineups.length===5;
 function setTeamButtons(){
   const signed=Boolean(teamUser);
@@ -188,6 +204,11 @@ function setTeamButtons(){
   $('teamOwnerUid').textContent=teamUser?.uid||'';
   $('teamInviteEmail').disabled=teamRole!=='owner';
   $('teamInviteBtn').disabled=teamRole!=='owner';
+  const transferTools=$('teamTransferTools');
+  transferTools.hidden=!signed;
+  $('teamCopyToPersonal').hidden=!teamActive;
+  $('teamCopyToOfficial').hidden=teamActive;
+  $('teamCopyToOfficial').disabled=!active || localDirty || writeRunning || !choosePanel.hidden;
 }
 function renderEditors(){
   const holder=$('teamEditorList');
@@ -296,8 +317,9 @@ async function openOfficial(){
 }
 async function leaveOfficial(){
   if(!teamActive)return;
-  clearTeamWatchers();teamActive=false;teamRole='viewer';teamKnown=null;
-  window.HILFU_APP.leaveTeamData();setTeamButtons();resumePersonal();
+  clearTeamWatchers();teamActive=false;teamRole='viewer';
+  // Keep the last known official snapshot only as a UI hint; every write rereads from the server.
+  window.HILFU_APP.leaveTeamData();resumePersonal();setTeamButtons();
   setTeamStatus('개인 보드로 돌아왔습니다.');
 }
 async function firstPublish(){
@@ -345,6 +367,7 @@ function triggerTeamSave(data){
 async function flushOfficial(){
   if(!teamActive||!teamDirty||teamWriting||teamConflict||!['owner','editor'].includes(teamRole))return;
   clearTeamTimers();teamWriting=true;
+  setTeamStatus('공식 팀 변경사항 서버 저장 중…');
   const state=window.HILFU_APP.getData(),sig=fingerprint(state),expected=teamRevision;
   try{
     await firestoreFns.runTransaction(db,async transaction=>{
@@ -364,6 +387,83 @@ async function flushOfficial(){
     if(teamDirty&&!teamConflict&&teamActive)teamTimer=setTimeout(flushOfficial,2200);
   }
 }
+// === v8.1 개인 ↔ 공식 보드 복사 (자동 쌍방 동기화 아님) ===
+const PERSONAL_KEY='hilfu-fc-app-v1';
+function downloadBoardBackup(data,tag){
+  if(!validTeamData(data))return;
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  const blob=new Blob([JSON.stringify({version:8,exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`hilfu_fc_${tag}_${stamp}.json`;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+function storedPersonal(){try{
+  const data=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'null');return validTeamData(data)?data:null;
+}catch{return null;}}
+async function copyOfficialToPersonal(){
+  if(!teamActive||!teamUser||!teamRef)return;
+  if(teamDirty||teamWriting||teamConflict){setTeamStatus('공식 보드에서 저장되지 않은 변경 또는 충돌이 있습니다. 저장 상태를 먼저 확인하세요.');return;}
+  const question='공식 보드 전체(선수·참석·5쿼터·전술)를 내 개인 보드로 복사할까요?\n\n내 개인 보드의 기존 내용(이 기기 + 개인 Firebase)이 교체됩니다. 공식 보드는 바뀌지 않습니다. 기존 개인 데이터는 JSON으로 백업할 수 있습니다.';
+  if(!confirm(question))return;
+  const button=$('teamCopyToPersonal');button.disabled=true;
+  try{
+    setTeamStatus('최신 공식 데이터와 개인 클라우드 데이터를 확인하는 중…');
+    const latest=await firestoreFns.getDocFromServer(teamRef);
+    if(!latest.exists()||!validTeamData(latest.data().state))throw Error('공식 데이터가 없습니다.');
+    if(Number(latest.data().revision)!==teamRevision)throw Error('공식 보드가 다른 기기에서 변경됐습니다. 보드를 새로 연 뒤 다시 진행하세요.');
+    const personalRef=firestoreFns.doc(db,'hilfuStates',teamUser.uid);
+    const personalSnapshot=await firestoreFns.getDocFromServer(personalRef);
+    const oldRemote=personalSnapshot.exists()?personalSnapshot.data()?.state:null;
+    const oldLocal=storedPersonal();
+    // Backup old personal data before changing it. Both are independent, importable JSON files.
+    if(validTeamData(oldLocal))downloadBoardBackup(oldLocal,'old_personal_device_backup');
+    if(validTeamData(oldRemote)&&fingerprint(oldRemote)!==fingerprint(oldLocal))downloadBoardBackup(oldRemote,'old_personal_cloud_backup');
+    if(!confirm('기존 개인 보드 백업을 확인했나요? 이제 공식 보드 내용을 개인 Firebase와 이 기기 개인 보드에 복사합니다. 계속할까요?')){
+      setTeamStatus('복사를 취소했습니다. 기존 데이터는 변경되지 않았습니다.');return;
+    }
+    const copy=JSON.parse(JSON.stringify(latest.data().state));
+    await firestoreFns.setDoc(personalRef,{state:copy,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    const localShell=oldLocal||{};
+    localStorage.setItem(PERSONAL_KEY,JSON.stringify({...localShell,...copy}));
+    localStorage.setItem(syncedKey(teamUser.uid),fingerprint(copy));
+    await leaveOfficial();
+    setTeamStatus('✅ 공식 팀 보드를 내 개인 보드와 개인 클라우드로 복사했습니다. 공식 보드에는 변화가 없습니다.');
+    d.showModal();
+  }catch(error){setTeamStatus('복사 실패: '+error.message+' · 원본 데이터는 유지되는지 확인하세요.');}
+  finally{button.disabled=false;setTeamButtons();}
+}
+async function copyPersonalToOfficial(){
+  if(teamActive||!teamUser||!db)return;
+  if(!syncReady()||localDirty||writeRunning||!choosePanel.hidden){
+    setTeamStatus('먼저 개인 보드에서 클라우드/이 기기 데이터 선택을 완료하고 개인 동기화가 저장된 상태인지 확인하세요.');return;
+  }
+  const question='개인 보드 전체를 공식 팀 보드로 반영할까요?\n\n기존 공식 선수·참석·5쿼터·전술 정보가 모두 교체되고 팀원에게 즉시 공유됩니다. 감독/지정 편집자만 가능하며 자동 반영이 아닌 명시적 일회성 작업입니다.';
+  if(!confirm(question))return;
+  const button=$('teamCopyToOfficial');button.disabled=true;
+  try{
+    setTeamStatus('기존 공식 데이터를 확인하고 백업 준비 중…');
+    const ref=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);
+    const snap=await firestoreFns.getDocFromServer(ref);
+    if(!snap.exists()||!validTeamData(snap.data()?.state))throw Error('공식 팀 보드가 없습니다. 감독이 먼저 생성해야 합니다.');
+    const old=snap.data(),rev=Number(old.revision)||0;
+    downloadBoardBackup(old.state,'old_official_board_backup');
+    if(!confirm(`기존 공식 팀 보드(revision ${rev})의 백업을 확인했나요? 개인 보드를 공식 자료로 교체할까요?`)){
+      setTeamStatus('공식 보드 변경을 취소했습니다.');return;
+    }
+    const data=JSON.parse(JSON.stringify(getLocal()));
+    // Transaction CAS: refuse to overwrite if another team editor committed meanwhile.
+    await firestoreFns.runTransaction(db,async tx=>{
+      const current=await tx.get(ref);
+      if(!current.exists()||Number(current.data().revision)!==rev)throw Error('다른 편집자가 방금 수정했습니다. 공식 팀 보드를 확인하고 다시 시도하세요.');
+      tx.update(ref,{state:data,revision:rev+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    });
+    setTeamStatus('✅ 개인 보드를 공식 팀 보드에 반영했습니다. 다른 팀원의 화면에도 전달됩니다.');
+    await openOfficial();
+  }catch(error){setTeamStatus('공식 반영 실패: '+error.message+' · 감독/편집자 권한과 네트워크 상태를 확인하세요.');d.showModal();}
+  finally{button.disabled=false;setTeamButtons();}
+}
+$('teamCopyToPersonal').onclick=copyOfficialToPersonal;
+$('teamCopyToOfficial').onclick=copyPersonalToOfficial;
 window.HILFU_TEAM={isActive:()=>teamActive,localChanged:triggerTeamSave,toggleMode:()=>teamActive?leaveOfficial():openOfficial()};
 $('teamOpenBtn').onclick=openOfficial;
 $('teamPersonalBtn').onclick=()=>{leaveOfficial();d.close();};

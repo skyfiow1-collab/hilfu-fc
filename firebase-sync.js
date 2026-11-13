@@ -199,6 +199,12 @@ const historyDialog=$('matchHistoryDialog'),newMatchDialog=$('matchNewDialog');
 const teamStatusEl=$('teamStatus');
 const setTeamStatus=(message)=>{
   teamStatusEl.textContent=message;
+  // 로그인 상태와 공개 보드 연결 상태를 혼동하지 않도록 따로 반영합니다.
+  if(!currentUser){
+    const failed=/실패|오류|충돌|접근할 수 없|권한 없음/.test(message);
+    badge.textContent=teamActive?(failed?'확인 필요':'공식 연결'):'미연결';
+    badge.className='syncbadge'+(teamActive?(failed?' warn':' online'):'');
+  }
   const phase = /실패|오류|충돌|권한 없음|접근할 수 없/.test(message)?'error'
     : /저장 완료|반영했습니다|복사했습니다/.test(message)?'saved'
     : /저장 중|저장하는 중/.test(message)?'saving'

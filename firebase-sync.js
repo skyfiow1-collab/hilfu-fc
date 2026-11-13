@@ -501,9 +501,177 @@ window.HILFU_AUTH={
 $('boardEditLogin').onclick=()=>{
   if(!d.open)d.showModal();
 };
+
+ 
+// === v8.4: 과거 경기(공개) 및 자동 백업(감독·편집자 전용) ===
+const canEditTeam=()=>Boolean(teamUser)&&['owner','editor'].includes(teamRole);
+const safeTitle=(v,fallback='자체전')=>(String(v||'').trim().slice(0,80)||fallback);
+const fmtDate=v=>v&&/^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';
+function textNode(tag,value,className){
+  const el=document.createElement(tag);
+  el.textContent=String(value);
+  if(className)el.className=className;
+  return el;
+}
+function actionButton(label,action){
+  const btn=document.createElement('button');btn.type='button';btn.className='btn small';btn.textContent=label;
+  btn.addEventListener('click',action);return btn;
+}
+function makeRow(title,description){
+  const el=document.createElement('div');el.className='match-history-entry';
+  el.append(textNode('b',title),textNode('span',description,'detail'));return el;
+}
+const matchesRef=()=>firestoreFns.collection(db,'hilfuMatchArchive');
+const backupsRef=()=>firestoreFns.collection(db,'hilfuTeamBackups');
+async function returnCurrentMatch(){
+  if(!historyView||!teamActive)return;
+  try{
+    setTeamStatus('현재 공식 경기 데이터를 서버에서 다시 확인하는 중…');
+    const snap=await firestoreFns.getDocFromServer(teamRef);
+    if(!snap.exists()||!validTeamData(snap.data().state))throw Error('공식 경기 데이터가 없습니다.');
+    historyView=null;const data=snap.data();
+    teamKnown=data;teamRevision=Number(data.revision)||0;teamLastSig=fingerprint(data.state);
+    window.HILFU_APP.enterTeamData(data.state,canEditTeam());
+    setTeamButtons();
+    setTeamStatus('현재 공식 팀 보드 연결됨 · '+(canEditTeam()?'편집 가능':'열람 전용')+' · 실시간 갱신');
+  }catch(error){
+    setTeamStatus('현재 경기로 돌아가기 실패: '+error.message);
+  }
+}
+async function viewArchivedMatch(docId){
+  if(!teamActive){setTeamStatus('공식 팀 보드를 먼저 여세요.');return;}
+  if(teamDirty||teamWriting||teamConflict){setTeamStatus('변경사항 저장 완료 또는 충돌 해결 후 과거 경기를 여세요.');return;}
+  try{
+    const docRef=firestoreFns.doc(db,'hilfuMatchArchive',docId);
+    const snap=await firestoreFns.getDocFromServer(docRef);
+    if(!snap.exists()||!validTeamData(snap.data().state))throw Error('이전 경기 데이터를 찾을 수 없습니다.');
+    const data=snap.data(),label=(data.date?data.date+' · ':'')+safeTitle(data.title);
+    historyView={id:docId,label};
+    window.HILFU_APP.enterTeamData(data.state,false);
+    setTeamButtons();
+    window.HILFU_APP.refreshBoardHeader();
+    setTeamStatus('지난 경기 '+label+' · 열람 전용 · 공식 데이터 변경 없음');
+    if(historyDialog.open)historyDialog.close();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(error){setTeamStatus('이전 경기 열기 실패: '+error.message);}
+}
+async function restoreOfficialState(docPath,description){
+  if(!teamActive||!canEditTeam())return;
+  if(teamDirty||teamWriting||teamConflict){setTeamStatus('현재 저장 대기 또는 충돌이 있습니다. 먼저 저장 상태를 확인하세요.');return;}
+  if(!confirm(description+'을(를) 현재 공식 보드로 복원할까요?\n\n현재 공식 보드는 복원 전에 자동 백업됩니다. 팀원들에게 복원 내용이 즉시 공유됩니다.'))return;
+  try{
+    const restoreRef=firestoreFns.doc(db,...docPath);
+    const saved=await firestoreFns.getDocFromServer(restoreRef);
+    if(!saved.exists()||!validTeamData(saved.data().state))throw Error('복원할 자료가 더 이상 존재하지 않습니다.');
+    const target=JSON.parse(JSON.stringify(saved.data().state));
+    const snap=await firestoreFns.getDocFromServer(teamRef);
+    if(!snap.exists())throw Error('현재 공식 보드가 없습니다.');
+    const rev=Number(snap.data().revision)||0;
+    if(rev!==teamRevision)throw Error('다른 편집자가 공식 보드를 변경했습니다. 최신 자료를 확인한 뒤 다시 시도하세요.');
+    if(!confirm('최종 확인: 공식 보드 전체를 교체합니다. 기존 공식 자료는 최근 10개 자동 백업 중 하나로 보관됩니다. 진행할까요?'))return;
+    setTeamStatus('복원 중 · 현재 공식 데이터를 먼저 보관합니다…');
+    await firestoreFns.runTransaction(db,async tx=>{
+      const current=await tx.get(teamRef);
+      if(!current.exists()||Number(current.data().revision)!==rev)throw Error('다른 코치가 수정했습니다. 복원을 중단합니다.');
+      tx.set(firestoreFns.doc(db,'hilfuTeamBackups','slot'+(rev%10)),
+        {state:current.data().state,sourceRevision:rev,reason:'복원 작업 이전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
+      tx.update(teamRef,{state:target,revision:rev+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    });
+    historyView=null;teamRevision=rev+1;teamLastSig=fingerprint(target);
+    window.HILFU_APP.enterTeamData(target,true);
+    setTeamButtons();
+    if(historyDialog.open)historyDialog.close();
+    setTeamStatus('공식 팀 보드 복원 완료 · 팀원에게 실시간 반영됨');
+  }catch(error){setTeamStatus('공식 보드 복원 실패: '+error.message);}
+}
+async function loadMatchHistory(){
+  const list=$('matchHistoryList'),backupPanel=$('matchBackupPanel'),backupList=$('matchBackupList');
+  list.replaceChildren(textNode('p','경기 이력을 읽어오는 중…'));
+  backupList.replaceChildren();
+  backupPanel.hidden=!canEditTeam();
+  if(!db||!firestoreFns){list.replaceChildren(textNode('p','Firebase 연결을 먼저 확인하세요.'));return;}
+  try{
+    const q=firestoreFns.query(matchesRef(),firestoreFns.orderBy('createdAt','desc'),firestoreFns.limit(40));
+    const snapshot=await firestoreFns.getDocs(q);
+    list.replaceChildren();
+    if(snapshot.empty)list.append(textNode('p','아직 보관된 이전 경기가 없습니다. 새 경기를 시작할 때 현재 경기가 자동 보관됩니다.'));
+    for(const docSnap of snapshot.docs){
+      const v=docSnap.data();if(!validTeamData(v.state))continue;
+      const date=fmtDate(v.date);
+      const row=makeRow((date?date+' · ':'')+safeTitle(v.title), '공식 보드 수정번호 '+(Number(v.sourceRevision)||0)+'에서 보관 · 읽기 전용');
+      const actions=document.createElement('div');actions.className='sync-actions';
+      actions.append(actionButton('경기 보기',()=>viewArchivedMatch(docSnap.id)));
+      if(canEditTeam())actions.append(actionButton('이 경기로 복원',()=>restoreOfficialState(['hilfuMatchArchive',docSnap.id],safeTitle(v.title))));
+      row.append(actions);list.append(row);
+    }
+  }catch(error){list.replaceChildren(textNode('p','지난 경기 목록 불러오기 실패: '+error.message+' · Firestore 규칙 게시 여부를 확인하세요.'));}
+  if(!canEditTeam())return;
+  try{
+    const snapshot=await firestoreFns.getDocs(backupsRef());
+    const docs=snapshot.docs.filter(x=>validTeamData(x.data()?.state)).sort((a,b)=>(b.data().sourceRevision||0)-(a.data().sourceRevision||0));
+    backupList.replaceChildren();
+    if(!docs.length)backupList.append(textNode('p','아직 자동 백업이 없습니다. 공식 보드를 수정하면 저장 직전 버전이 자동 보관됩니다.'));
+    for(const snap of docs){
+      const data=snap.data(),row=makeRow('공식 보드 수정번호 '+data.sourceRevision,'백업 사유: '+(data.reason||'자동 백업'));
+      const actions=document.createElement('div');actions.className='sync-actions';
+      actions.append(actionButton('이 버전 복원',()=>restoreOfficialState(['hilfuTeamBackups',snap.id],'수정번호 '+data.sourceRevision)));
+      row.append(actions);backupList.append(row);
+    }
+  }catch(error){backupList.replaceChildren(textNode('p','자동 백업 목록 불러오기 실패: '+error.message+' · Firestore 보안 규칙을 확인하세요.'));}
+}
+async function createNewMatch(){
+  const status=$('matchNewStatus'),btn=$('matchCreateBtn');
+  if(!teamActive||historyView||!canEditTeam()){status.textContent='현재 공식 보드의 감독·승인 코치만 새 경기를 시작할 수 있습니다.';return;}
+  if(teamDirty||teamWriting||teamConflict){status.textContent='현재 수정사항을 모두 서버에 저장하고 다시 시도하세요.';return;}
+  const archiveTitle=safeTitle($('matchArchiveTitle').value,'이전 자체전');
+  const date=fmtDate($('matchNewDate').value);
+  const title=safeTitle($('matchNewTitle').value);
+  if(!date){status.textContent='새 경기 날짜를 선택하세요.';return;}
+  if(!confirm('현재 공식 경기를 "'+archiveTitle+'" 이름으로 보관하고 새 경기 "'+date+' '+title+'"를 시작할까요?\n\n선수 포지션은 유지하지만 참석·라인업·전술 정보는 초기화됩니다.'))return;
+  btn.disabled=true;
+  try{
+    status.textContent='현재 공식 데이터 확인 및 경기 보관 중…';
+    const previous=await firestoreFns.getDocFromServer(teamRef);
+    if(!previous.exists()||!validTeamData(previous.data().state))throw Error('현재 공식 보드가 없습니다.');
+    const rev=Number(previous.data().revision)||0;
+    if(rev!==teamRevision)throw Error('다른 편집자가 방금 수정했습니다. 새로고침 후 다시 시도하세요.');
+    const next=window.HILFU_APP.createNewMatchData(date,title);
+    const archivedId=firestoreFns.doc(matchesRef());
+    await firestoreFns.runTransaction(db,async tx=>{
+      const current=await tx.get(teamRef);
+      if(!current.exists()||Number(current.data().revision)!==rev)throw Error('동시 수정 감지 · 새 경기 시작을 중단합니다.');
+      const original=current.data().state;
+      tx.set(archivedId,{state:original,title:archiveTitle,date:fmtDate(original.match?.date),sourceRevision:rev,createdAt:firestoreFns.serverTimestamp(),actorUid:teamUser.uid});
+      tx.set(firestoreFns.doc(db,'hilfuTeamBackups','slot'+(rev%10)),{state:original,sourceRevision:rev,reason:'새 경기 시작 전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
+      tx.update(teamRef,{state:next,revision:rev+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    });
+    teamRevision=rev+1;teamLastSig=fingerprint(next);teamKnown={...teamKnown,state:next,revision:rev+1};
+    window.HILFU_APP.enterTeamData(next,true);
+    setTeamButtons();
+    setTeamStatus('새 경기 '+date+' '+title+' 시작 완료 · 이전 경기는 보관됨');
+    if(newMatchDialog.open)newMatchDialog.close();
+  }catch(error){status.textContent='새 경기 시작 실패: '+error.message;setTeamStatus('새 경기 시작 실패: '+error.message);}
+  finally{btn.disabled=false;}
+}
+$('boardHistoryBtn').onclick=()=>{historyDialog.showModal();loadMatchHistory();};
+$('closeMatchHistory').onclick=()=>historyDialog.close();
+$('boardNewMatchBtn').onclick=()=>{
+  if(!canEditTeam()||historyView)return;
+  const old=teamKnown?.state?.match;
+  $('matchArchiveTitle').value=old?.title?(old.date?old.date+' ':'')+old.title:'현재 자체전';
+  const dt=new Date();const local=new Date(dt.getTime()-dt.getTimezoneOffset()*60000);
+  $('matchNewDate').value=local.toISOString().slice(0,10);
+  $('matchNewTitle').value='자체전';
+  $('matchNewStatus').textContent='';
+  newMatchDialog.showModal();
+};
+$('boardReturnOfficialBtn').onclick=returnCurrentMatch;
+$('closeMatchNew').onclick=()=>newMatchDialog.close();
+$('matchCreateBtn').onclick=createNewMatch;
+
 $('teamCopyToPersonal').onclick=copyOfficialToPersonal;
 $('teamCopyToOfficial').onclick=copyPersonalToOfficial;
-window.HILFU_TEAM={isActive:()=>teamActive,localChanged:triggerTeamSave,toggleMode:()=>teamActive?leaveOfficial():openOfficial()};
+window.HILFU_TEAM={isActive:()=>teamActive,isHistoryMode:()=>Boolean(historyView),historyLabel:()=>historyView?.label||'',localChanged:triggerTeamSave,toggleMode:()=>teamActive?(historyView?returnCurrentMatch():leaveOfficial()):openOfficial()};
 $('teamOpenBtn').onclick=openOfficial;
 $('teamPersonalBtn').onclick=()=>{leaveOfficial();d.close();};
 $('teamPublishBtn').onclick=firstPublish;

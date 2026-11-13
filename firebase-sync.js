@@ -1,4 +1,4 @@
-// HILFU FC v7 - Firebase Authentication + Cloud Firestore, GitHub Pages 호환 ESM
+// HILFU FC v8 - Firebase Authentication + Cloud Firestore, GitHub Pages 호환 ESM
 // Firebase 프로젝트의 공개 web config는 firebase-config.js에 있습니다.
 const $ = id => document.getElementById(id);
 const d = $('syncDialog');
@@ -11,7 +11,7 @@ const choosePanel = $('cloudChoose');
 const statusLine = $('cloudStatus');
 const syncedKey = uid => `hilfu-fc-last-cloud-v7-${uid}`;
 const fingerprint = data => JSON.stringify(data);
-let auth=null,db=null,currentUser=null,docRef=null;
+let auth=null,db=null,currentUser=null,docRef=null,personalPaused=false;
 let active=false,firstSnapshot=true,knownCloud=null,knownSignature=null,lastServerSignature=null;
 let localDirty=false,writeRunning=false,pendingTimer=null,unsub=null;
 let firestoreFns=null, authFns=null;
@@ -72,7 +72,7 @@ window.HILFU_CLOUD={
   }
 };
 function processSnapshot(snapshot){
-  if(!currentUser)return;
+  if(!currentUser||personalPaused)return;
   if(snapshot.metadata.hasPendingWrites)return;
   const remote=snapshot.exists()?snapshot.data()?.state:null;
   if(remote&&(!Array.isArray(remote.players)||!Array.isArray(remote.lineups))){
@@ -127,17 +127,24 @@ async function configure(){
     setVisible(configHelp,false);
     setStatus('Firebase 준비 완료 · Google 로그인 필요');
     authSDK.onAuthStateChanged(auth,user=>{
-      resetSession();currentUser=user;
+      resetSession();const previousUser=currentUser;currentUser=user;
       setVisible(signedInPanel,Boolean(user));setVisible(signedOutPanel,!user);
-      if(!user){setStatus('Google 로그인하면 같은 계정의 기기끼리 동기화할 수 있습니다.');return;}
-      guard();
-      $('cloudAccount').textContent=(user.email||user.displayName||'Google 계정')+' · 로그인됨';
-      setStatus('로그인됨 · 클라우드 데이터 확인 중…','warn');
-      docRef=dbSDK.doc(db,'hilfuStates',user.uid);
-      unsub=dbSDK.onSnapshot(docRef,processSnapshot,error=>{setStatus('실시간 연결 실패: '+error.message+' · Firestore 보안 규칙을 확인하세요.','warn');});
+      if(user){guard();$('cloudAccount').textContent=(user.email||user.displayName||'Google 계정')+' · 로그인됨';}
+      handleTeamAuth(user,previousUser);
+      if(!user){setStatus('Google 로그인하면 개인·공식 팀 데이터를 확인할 수 있습니다.');return;}
+      if(!personalPaused)startPersonalSync();
     },error=>setStatus('로그인 확인 실패: '+error.message,'warn'));
   }catch(e){setStatus('Firebase SDK 불러오기 실패: '+e.message+' · 인터넷 연결을 확인하세요.','warn');}
 }
+function startPersonalSync(){
+  if(!currentUser||personalPaused||window.HILFU_APP?.isTeamMode())return;
+  resetSession();
+  setStatus('개인 클라우드 확인 중…','warn');
+  docRef=firestoreFns.doc(db,'hilfuStates',currentUser.uid);
+  unsub=firestoreFns.onSnapshot(docRef,processSnapshot,error=>setStatus('개인 동기화 실패: '+error.message,'warn'));
+}
+function pausePersonal(){personalPaused=true;resetSession();}
+function resumePersonal(){personalPaused=false;startPersonalSync();}
 $('cloudBtn').onclick=()=>d.showModal();
 $('closeSyncDialog').onclick=()=>d.close();
 $('cloudLoginBtn').onclick=async()=>{
@@ -146,12 +153,12 @@ $('cloudLoginBtn').onclick=async()=>{
   catch(e){setStatus('Google 로그인 실패: '+e.message+' · GitHub Pages 도메인을 인증 허용 도메인에 추가했는지 확인하세요.','warn');}
 };
 $('cloudLogoutBtn').onclick=async()=>{if(auth)await authFns.signOut(auth);};
-$('cloudUseRemote').onclick=()=>{
+$('cloudUseRemote').onclick=()=>{if(personalPaused)return;
   if(!knownCloud)return;
   if(!confirm('클라우드 데이터를 이 기기로 불러옵니다. 현재 이 기기 데이터는 덮어써집니다. 백업하셨나요?'))return;
   active=true;acceptCloud(knownCloud);setVisible(choosePanel,false);
 };
-$('cloudUploadLocal').onclick=async()=>{
+$('cloudUploadLocal').onclick=async()=>{if(personalPaused){setStatus('공식 팀 보드 사용 중에는 개인 동기화를 변경할 수 없습니다. 개인 보드로 돌아가세요.','warn');return;}
   if(!currentUser||!docRef)return;
   if(knownCloud&&!confirm('이 기기 데이터를 클라우드에 올리면 다른 기기의 공유 데이터도 바뀝니다. 계속할까요?'))return;
   if(!knownCloud&&!confirm('이 기기 데이터를 첫 클라우드 원본으로 올릴까요?'))return;
@@ -159,3 +166,209 @@ $('cloudUploadLocal').onclick=async()=>{
   await flush();
 };
 configure();
+
+
+// === v8 공식 팀 보드 & 이메일 기반 편집 권한 ===
+// 프로젝트 내 공식 상태는 hilfuTeams/official 한 문서에 보관합니다.
+// 읽기: Google 로그인 회원. 수정: Firestore Security Rules가 소유자 UID/편집자 이메일을 검사.
+const TEAM_ID='official';
+let teamUser=null,teamRef=null,aclRef=null,teamActive=false,teamRole='viewer';
+let teamUnsub=null,aclUnsub=null,aclEmails=[],teamKnown=null,teamRevision=0;
+let teamLastSig=null,teamDirty=false,teamWriting=false,teamTimer=null,teamConflict=false;
+const teamStatusEl=$('teamStatus');
+const setTeamStatus=(message)=>{teamStatusEl.textContent=message;};
+const validTeamData=(data)=>data&&Array.isArray(data.players)&&Array.isArray(data.lineups)&&data.lineups.length===5;
+function setTeamButtons(){
+  const signed=Boolean(teamUser);
+  $('teamOpenBtn').disabled=!signed;
+  $('teamOpenBtn').hidden=teamActive;
+  $('teamPersonalBtn').hidden=!teamActive;
+  $('teamPublishBtn').hidden=!signed || teamActive || Boolean(teamKnown);
+  $('teamOwnerPanel').hidden=!(signed && (!teamKnown || teamRole==='owner'));
+  $('teamOwnerUid').textContent=teamUser?.uid||'';
+  $('teamInviteEmail').disabled=teamRole!=='owner';
+  $('teamInviteBtn').disabled=teamRole!=='owner';
+}
+function renderEditors(){
+  const holder=$('teamEditorList');
+  holder.replaceChildren();
+  if(teamRole!=='owner'){return;}
+  if(!aclEmails.length){const msg=document.createElement('span');msg.className='team-small';msg.textContent='추가된 편집자가 없습니다. 감독만 수정할 수 있습니다.';holder.appendChild(msg);}
+  for(const email of aclEmails){
+    const row=document.createElement('div');row.className='team-acl-row';
+    const label=document.createElement('span');label.textContent=email;
+    const btn=document.createElement('button');btn.className='btn small danger';btn.type='button';btn.textContent='권한 회수';
+    btn.addEventListener('click',()=>removeEditor(email));
+    row.append(label,btn);holder.append(row);
+  }
+}
+function clearTeamTimers(){if(teamTimer){clearTimeout(teamTimer);teamTimer=null;}}
+function clearTeamWatchers(){
+  clearTeamTimers();if(teamUnsub){teamUnsub();teamUnsub=null;}if(aclUnsub){aclUnsub();aclUnsub=null;}
+  teamDirty=false;teamWriting=false;teamConflict=false;
+}
+function handleTeamAuth(user,previousUser){
+  if(teamActive && (!user || user.uid!==previousUser?.uid)){
+    clearTeamWatchers();teamActive=false;window.HILFU_APP?.leaveTeamData();personalPaused=false;
+  }
+  teamUser=user;teamRole='viewer';aclEmails=[];teamKnown=null;teamRevision=0;teamLastSig=null;
+  if(db&&firestoreFns){teamRef=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);aclRef=firestoreFns.doc(db,'hilfuTeamAccess',TEAM_ID);}
+  if(!user)setTeamStatus('Google 로그인하면 공식 팀 보드를 열람할 수 있습니다.');
+  else setTeamStatus('공식 팀 보드를 열면 감독이 공유한 최신 정보를 확인할 수 있습니다.');
+  setTeamButtons();renderEditors();
+}
+async function checkTeamRole(){
+  if(!teamUser||!teamKnown){teamRole='viewer';return;}
+  const user=teamUser;
+  teamRole=teamKnown.ownerUid===user.uid?'owner':'viewer';
+  if(aclUnsub){aclUnsub();aclUnsub=null;}
+  if(!aclRef)return;
+  if(teamRole==='owner'){
+    aclUnsub=firestoreFns.onSnapshot(aclRef,snap=>{
+      aclEmails=Array.isArray(snap.data()?.editorEmails)?snap.data().editorEmails:[];
+      renderEditors();
+    },error=>setTeamStatus('편집자 목록 확인 실패: '+error.message));
+  }else{
+    // 편집자는 자신이 이메일 허용 목록에 있을 때만 ACL 문서를 읽을 수 있습니다.
+    try{
+      const snapshot=await firestoreFns.getDoc(aclRef);
+      const list=snapshot.data()?.editorEmails||[];
+      if(user.emailVerified&&list.includes((user.email||'').toLowerCase())){
+        teamRole='editor';
+        aclUnsub=firestoreFns.onSnapshot(aclRef,async snap=>{
+          const current=snap.data()?.editorEmails||[];
+          if(!current.includes((teamUser?.email||'').toLowerCase()))revokeLocalEdit();
+        },()=>revokeLocalEdit());
+      }
+    }catch{teamRole='viewer';}
+  }
+  if(teamActive)window.HILFU_APP.setTeamEditable(teamRole==='owner'||teamRole==='editor');
+  setTeamButtons();
+}
+function revokeLocalEdit(){
+  teamRole='viewer';teamDirty=false;clearTeamTimers();
+  if(teamKnown?.state)window.HILFU_APP.enterTeamData(teamKnown.state,false);
+  else window.HILFU_APP.setTeamEditable(false);
+  setTeamStatus('편집 권한이 해제되었습니다. 미전송 변경은 공식 자료에 반영되지 않으며 이제 열람만 할 수 있습니다.');
+}
+function snapshotTeam(snap){
+  if(!teamActive||!teamUser||snap.metadata.hasPendingWrites)return;
+  if(!snap.exists()){
+    setTeamStatus('공식 팀 데이터가 삭제되거나 접근할 수 없습니다.');return;
+  }
+  const raw=snap.data(),newData=raw.state;
+  if(!validTeamData(newData)){setTeamStatus('공식 팀 데이터 형식이 올바르지 않습니다.');return;}
+  const signature=fingerprint(newData),nextRevision=Number(raw.revision)||0;
+  if(teamDirty && !teamWriting && signature!==fingerprint(window.HILFU_APP.getData()) && nextRevision!==teamRevision){
+    teamConflict=true;clearTeamTimers();
+    setTeamStatus('⚠️ 동시 수정 감지: 서버가 먼저 변경되었습니다. 내 수정은 아직 서버에 저장되지 않았습니다. JSON 백업 후 공식 팀 보드를 다시 여세요.');
+    return;
+  }
+  teamKnown=raw;teamRevision=nextRevision;teamLastSig=signature;
+  if(teamDirty||teamWriting)return;
+  window.HILFU_APP.enterTeamData(newData,teamRole==='owner'||teamRole==='editor');
+  setTeamStatus(`공식 팀 보드 연결됨 · ${teamRole==='owner'?'감독':teamRole==='editor'?'편집자':'열람 전용'} · 실시간 갱신`);
+}
+async function openOfficial(){
+  if(!teamUser){d.showModal();setTeamStatus('Google 로그인 후 공식 보드를 열 수 있습니다.');return;}
+  if(!db||!firestoreFns){d.showModal();setTeamStatus('Firebase 준비 중입니다.');return;}
+  if(teamActive){d.close();return;}
+  try{
+    setTeamStatus('공식 팀 데이터를 확인하는 중…');
+    teamRef=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);aclRef=firestoreFns.doc(db,'hilfuTeamAccess',TEAM_ID);
+    const snap=await firestoreFns.getDoc(teamRef);
+    if(!snap.exists()){
+      teamKnown=null;setTeamStatus('아직 공식 보드가 게시되지 않았습니다. 감독이 Firestore 규칙에 자신의 UID를 설정한 뒤 최초 게시해야 합니다.');setTeamButtons();d.showModal();return;
+    }
+    const raw=snap.data();if(!validTeamData(raw.state))throw Error('공식 보드 데이터가 올바르지 않습니다.');
+    clearTeamWatchers();pausePersonal();
+    teamActive=true;teamKnown=raw;teamRevision=Number(raw.revision)||0;teamLastSig=fingerprint(raw.state);
+    window.HILFU_APP.enterTeamData(raw.state,false);
+    setTeamButtons();
+    await checkTeamRole();
+    teamUnsub=firestoreFns.onSnapshot(teamRef,snapshotTeam,err=>setTeamStatus('공식 팀 보드 구독 실패: '+err.message));
+    window.scrollTo({top:0,behavior:'smooth'});d.close();
+  }catch(error){
+    clearTeamWatchers();teamActive=false;resumePersonal();
+    if(window.HILFU_APP.isTeamMode())window.HILFU_APP.leaveTeamData();
+    setTeamStatus('공식 보드를 열 수 없습니다: '+error.message);d.showModal();
+  }
+}
+async function leaveOfficial(){
+  if(!teamActive)return;
+  clearTeamWatchers();teamActive=false;teamRole='viewer';teamKnown=null;
+  window.HILFU_APP.leaveTeamData();setTeamButtons();resumePersonal();
+  setTeamStatus('개인 보드로 돌아왔습니다.');
+}
+async function firstPublish(){
+  if(!teamUser||teamActive)return;
+  if(!confirm('현재 개인 보드의 선수·라인업·전술을 공식 팀 보드로 처음 게시할까요? 게시된 내용은 Google 로그인한 팀원들이 볼 수 있습니다. 먼저 JSON 백업을 권장합니다.'))return;
+  try{
+    teamRef=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);aclRef=firestoreFns.doc(db,'hilfuTeamAccess',TEAM_ID);
+    if((await firestoreFns.getDoc(teamRef)).exists()){setTeamStatus('이미 공식 보드가 있습니다. 기존 공식 보드를 먼저 열어주세요.');return;}
+    const data=window.HILFU_APP.getData();
+    // 규칙에서 하드코딩된 감독 UID와 인증 UID가 일치할 때만 생성됩니다.
+    await firestoreFns.setDoc(teamRef,{ownerUid:teamUser.uid,state:data,revision:1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    // 첫 게시 후 권한 설정 문서 생성. 실패하더라도 감독은 이후 수정·재시도 가능.
+    try{await firestoreFns.setDoc(aclRef,{ownerUid:teamUser.uid,editorEmails:[],updatedAt:firestoreFns.serverTimestamp()});}
+    catch(error){setTeamStatus('공식 보드는 게시됐지만 편집자 설정 생성 실패: '+error.message);}
+    await openOfficial();
+  }catch(error){setTeamStatus('최초 게시 실패: '+error.message+' · Firestore 규칙의 감독 UID와 게시 상태를 확인하세요.');}
+}
+async function setEditors(emails){
+  if(teamRole!=='owner'||!teamUser||!aclRef)return;
+  const cleaned=[...new Set(emails.map(x=>x.trim().toLowerCase()))];
+  if(cleaned.length>20){setTeamStatus('편집자는 최대 20명까지 등록할 수 있습니다.');return;}
+  try{
+    await firestoreFns.setDoc(aclRef,{ownerUid:teamUser.uid,editorEmails:cleaned,updatedAt:firestoreFns.serverTimestamp()});
+    aclEmails=cleaned;renderEditors();setTeamStatus(`편집자 ${cleaned.length}명 등록됨. 해당 Google 계정으로 로그인하면 수정 가능합니다.`);
+  }catch(error){setTeamStatus('권한 수정 실패: '+error.message+' · Firestore 보안 규칙을 확인하세요.');}
+}
+function inviteEditor(){
+  if(teamRole!=='owner')return;
+  const email=$('teamInviteEmail').value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setTeamStatus('올바른 이메일 주소를 입력하세요.');return;}
+  if(aclEmails.includes(email)){setTeamStatus('이미 등록된 이메일입니다.');return;}
+  if(!confirm(`${email} 계정에 공식 보드 수정 권한을 부여할까요?`))return;
+  setEditors([...aclEmails,email]);$('teamInviteEmail').value='';
+}
+function removeEditor(email){
+  if(teamRole!=='owner'||!confirm(email+' 계정의 수정 권한을 회수할까요?'))return;
+  setEditors(aclEmails.filter(x=>x!==email));
+}
+function triggerTeamSave(data){
+  if(!teamActive||!['owner','editor'].includes(teamRole)||teamConflict)return;
+  if(fingerprint(data)===teamLastSig && !teamDirty)return;
+  teamDirty=true;clearTeamTimers();teamTimer=setTimeout(flushOfficial,1100);
+  setTeamStatus('공식 팀 변경사항 저장 대기 중…');
+}
+async function flushOfficial(){
+  if(!teamActive||!teamDirty||teamWriting||teamConflict||!['owner','editor'].includes(teamRole))return;
+  clearTeamTimers();teamWriting=true;
+  const state=window.HILFU_APP.getData(),sig=fingerprint(state),expected=teamRevision;
+  try{
+    await firestoreFns.runTransaction(db,async transaction=>{
+      const snap=await transaction.get(teamRef);
+      if(!snap.exists()||snap.data().revision!==expected)throw Error('동시 편집 충돌');
+      transaction.update(teamRef,{state,revision:expected+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+    });
+    teamRevision=expected+1;teamLastSig=sig;
+    teamDirty=fingerprint(window.HILFU_APP.getData())!==sig;
+    setTeamStatus(teamDirty?'추가 변경사항 저장 대기 중…':'공식 팀 보드 저장 완료 · 다른 팀원에게 실시간 반영됨');
+  }catch(error){
+    if(/동시 편집 충돌|ABORTED|permission-denied/i.test(error.message||'')){
+      teamConflict=true;setTeamStatus('저장 충돌 또는 권한 없음: '+error.message+' · 데이터를 백업한 뒤 공식 보드를 다시 여세요.');
+    }else{setTeamStatus('공식 보드 저장 오류: '+error.message+' · 재시도 예정');}
+  }finally{
+    teamWriting=false;
+    if(teamDirty&&!teamConflict&&teamActive)teamTimer=setTimeout(flushOfficial,2200);
+  }
+}
+window.HILFU_TEAM={isActive:()=>teamActive,localChanged:triggerTeamSave,toggleMode:()=>teamActive?leaveOfficial():openOfficial()};
+$('teamOpenBtn').onclick=openOfficial;
+$('teamPersonalBtn').onclick=()=>{leaveOfficial();d.close();};
+$('teamPublishBtn').onclick=firstPublish;
+$('teamInviteBtn').onclick=inviteEditor;
+$('teamInviteEmail').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inviteEditor();}};
+$('teamCopyUid').onclick=()=>{if(!teamUser)return;if(!navigator.clipboard?.writeText){setTeamStatus('위에 표시된 UID를 직접 선택해 복사하세요.');return;}navigator.clipboard.writeText(teamUser.uid).then(()=>setTeamStatus('UID를 복사했습니다. Firestore 규칙의 PASTE_OWNER_UID_HERE 자리에 입력하세요.')).catch(()=>setTeamStatus('위의 UID를 직접 복사하세요.'));};
+setTeamButtons();

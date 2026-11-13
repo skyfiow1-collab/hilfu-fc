@@ -1,38 +1,42 @@
-# HILFU FC v7.0 — Firebase 실시간 동기화 설정
+# HILFU FC v8.0 — 공식 팀 공유 및 권한 관리
 
-힐푸FC 선수·전술 관리 앱을 **GitHub Pages + Google 로그인 + Cloud Firestore**로 구성했습니다. 모바일·태블릿에서 같은 Google 계정으로 로그인하면 데이터가 실시간으로 맞춰집니다. 연결 전에는 기존처럼 브라우저에 저장합니다.
+본 패키지는 GitHub Pages로 배포하는 정적 웹앱입니다. Firebase Authentication(Google 로그인) 및 Cloud Firestore를 사용하며, **GitHub 저장소에 파일을 업로드하는 것만으로 Firestore 보안 규칙이 적용되지는 않습니다.**
 
-## 1. Firebase 프로젝트에서 필수 작업
+## 새 기능
 
-1. [Firebase 콘솔](https://console.firebase.google.com/) → **프로젝트 추가** (또는 기존 프로젝트 선택).
-2. **프로젝트 설정(톱니바퀴) → 내 앱 → 웹 앱 추가(`</>`)**. 제공되는 `firebaseConfig`에서 `apiKey`, `authDomain`, `projectId`, `appId`를 확인합니다.
-3. **Build → Authentication → 시작하기 → Sign-in method → Google 활성화**.
-4. **Authentication → Settings → Authorized domains**에서 GitHub Pages 호스트인 `skyfiow1-collab.github.io`를 추가합니다. 사용 중인 다른 도메인이 있으면 그 도메인도 추가합니다.
-5. **Build → Firestore Database → 데이터베이스 만들기**. 보안 규칙을 임시 전체허용(`allow read, write: if true`)으로 열지 마세요.
-6. **Firestore Database → Rules** 탭에 패키지의 `firestore.rules` 내용을 붙여넣고 **Publish**합니다. 규칙에서 Google 로그인 UID에 해당하는 문서만 접근하도록 제한합니다.
+- **개인 보드 ↔ 공식 팀 보드** 전환. 개인 보드 내용은 공식팀에 '최초 게시'하지 않는 한 공유하지 않습니다.
+- 공식 팀 보드는 Google 계정으로 로그인하면 열람할 수 있습니다.
+- **감독**은 최초 게시, 공식 데이터 편집, 편집자 이메일 추가·회수 가능.
+- **지정된 편집자**는 본인의 인증된 Google 이메일로 로그인하면 공식 데이터 수정 가능.
+- **일반 팀원**은 공식팀 데이터 조회, 쿼터 전환, PNG 다운로드, 백업만 가능. 편집 도구는 비활성화됩니다.
+- Firestore 보안 규칙에서도 감독 UID와 등록 이메일을 검사하므로 브라우저의 개발자 도구로 버튼을 활성화해도 수정 권한이 생기지 않습니다.
+- 편집 중 동시 변경은 Firestore revision 기반 트랜잭션으로 충돌을 감지합니다. 충돌 시 덮어쓰지 않고 백업 후 새로 열도록 안내합니다.
+- 기존 개인 데이터는 `hilfuStates/{uid}`에 그대로 있으며, `hilfuTeams/official`은 별도 저장소입니다.
 
-## 2. GitHub 업로드
+## 설치 순서 (중요)
 
-1. `firebase-config.js`에 이번 Firebase 웹 앱 설정값을 입력해 두었습니다. **별도 수정 없이 사용 가능합니다.** 서비스 계정/비밀키/관리자 인증서는 GitHub에 올리지 마세요.
-2. GitHub 저장소 최상위에 `index.html`, `firebase-sync.js`, `firebase-config.js`, `.nojekyll`, `README.md`를 업로드하고 커밋합니다. 기존 `index.html`은 새 것으로 덮어씁니다.
-3. Settings → Pages → Deploy from a branch → main / (root)로 설정합니다.
-4. `https://skyfiow1-collab.github.io/hilfu-fc/` (저장소 이름이 `hilfu-fc`인 경우)에 접속합니다.
+1. **v7에서 JSON 백업**: 현재 힐푸FC 앱에서 `↓ 데이터 백업`을 눌러 보관합니다.
+2. GitHub Pages 저장소에 이 패키지의 `index.html`, `firebase-config.js`, `firebase-sync.js`, `.nojekyll` 등을 업로드해 v8을 배포합니다. 배포 후 공식팀 기능을 활성화하기 전까지 개인 모드로 계속 사용할 수 있습니다.
+3. 배포된 앱에서 `☁ 로그인·팀 공유` → `Google로 로그인`합니다. 같은 창의 **Firebase UID**를 복사합니다.
+4. Firebase 콘솔 → **Firestore Database → 규칙(Rules)**에서 `firestore.rules` 전체 내용을 붙여 넣고, **`PASTE_OWNER_UID_HERE`를 복사한 감독 UID로 교체**합니다. `게시(Publish)`를 반드시 누릅니다. 아직 이 작업을 하지 않았다면 최초 게시가 거절되는 것이 정상입니다.
+5. `☁ 로그인·팀 공유` → `내 개인 데이터를 공식 팀에 최초 게시`를 누릅니다. 기존 실제 데이터를 게시하려면 개인 보드가 최신 상태인지 먼저 확인해야 합니다.
+6. 이후 `공식 팀 보드 열기`로 확인하고, 감독 관리 영역에서 Google 이메일을 입력하여 코치에게 편집 권한을 부여합니다. 권한을 회수할 때는 이메일 옆 `권한 회수`를 누릅니다.
+7. 다른 팀원은 **동일한 GitHub Pages URL**에 접속 → Google 로그인 → `공식 팀 보드 열기`로 조회합니다.
 
-공식 문서: https://firebase.google.com/docs/web/setup · https://firebase.google.com/docs/auth/web/google-signin · https://firebase.google.com/docs/firestore/query-data/listen · https://firebase.google.com/docs/firestore/security/get-started
+## 보안·개인정보 주의
 
-## 3. 최초 동기화 절차 (매우 중요)
+- `firebase-config.js`는 **공개용 Firebase 웹 구성**입니다. 서비스 계정 개인키, 비밀번호 등 관리자 비밀은 업로드하지 않습니다.
+- Firestore 규칙 파일을 GitHub에 올리는 것만으로 Firebase에는 적용되지 않습니다. UID를 입력한 후 **Firebase 콘솔에서 규칙 게시**를 완료해야 합니다.
+- 현재 공식팀 데이터는 **Google 로그인을 한 사람이라면 누구나 읽을 수 있습니다.** 링크를 팀원 외부에 공유하면 다른 Google 계정 소유자도 접근할 수 있어, 이 버전은 **팀원 열람 제한 기능이 아닙니다.** 초대된 멤버만 읽게 하려면 별도 승인 명단 기능이 필요합니다.
+- 편집자 이메일 목록은 감독 또는 지정 편집자만 접근 가능합니다. 등록하기 전에 해당 계정 소유자 동의를 얻는 것이 좋습니다.
+- 현재 문서 데이터가 한 덩어리이므로 여러 사람이 아주 빠르게 수정하면 충돌 안내가 뜰 수 있습니다. 충돌 시 **공식팀 보드를 다시 열고 변경을 확인하세요.**
+- 기본 선수 명단은 예시 이름입니다. 실제 명단은 개인 데이터 백업을 가져온 다음 감독 계정으로 최초 게시하세요.
+- Firebase 실시간 연결/규칙은 실제 서비스 계정 권한으로 테스트해야 완전히 확인할 수 있습니다.
 
-1. **기존 데이터를 가진 휴대폰**의 힐푸FC 앱에서 `↓ 데이터 백업`을 눌러 JSON을 저장합니다. 기존 다른 출처/도메인의 로컬 저장소는 자동 이전되지 않으므로, GitHub Pages 주소에서 `↑ 백업 불러오기`로 복원합니다.
-2. 상단 `☁ 동기화 설정 → Google로 로그인`을 누릅니다.
-3. 최초에는 **↑ 이 기기 데이터 올리기**를 선택합니다. 현재 휴대폰 데이터가 첫 클라우드 원본이 됩니다.
-4. **갤럭시탭**에서 같은 Pages 주소 접속 → 같은 Google 계정으로 로그인 → **☁ 클라우드 데이터 가져오기** 선택. 이후 변경은 자동 전달됩니다.
-5. 다른 계정으로 접속하면 다른 개인 데이터로 분리됩니다. 현재 버전은 코치/팀 전체의 공동 데이터 권한 관리 기능은 제공하지 않습니다.
+## 파일
 
-## 주의 사항
-
-- 동기화는 선수·라인업·전술판·화살표·메모 데이터를 포함합니다. 기기별 메뉴/선택 쿼터는 독립입니다.
-- 한 사용자 계정 아래 단일 Firestore 문서에 저장하므로 **두 기기에서 동시에 편집하면 충돌할 수 있습니다**. 앱은 발견한 충돌에서 보존할 쪽을 고르게 하지만, 완전한 병합 기능은 아닙니다.
-- 인터넷이 끊기면 로컬 편집 내용은 해당 브라우저에 남지만, 이 버전은 전문적인 오프라인 큐가 없습니다. 연결이 끊겼다가 돌아온 경우 저장 상태를 반드시 확인하고 필요 시 JSON 백업으로 복원하세요.
-- JSON 백업은 로컬 파일입니다. 실시간 동기화가 켜져 있는 경우 백업 불러오기/초기화도 클라우드에 전파될 수 있으니 작업 전 백업하세요.
-- `firebase-config.js`는 정적 사이트에 노출되는 공개 웹 앱 설정입니다. Firestore 보안은 반드시 **보안 규칙 + Google 로그인**으로 설정합니다.
-- Firebase 플러그인을 Codex에 연결한 것만으로 Firebase 프로젝트·Firestore·웹 앱 설정이 자동으로 준비되지는 않습니다.
+- `index.html`: 앱 UI/전술판/선수 관리/개인·공식 모드
+- `firebase-sync.js`: Google 로그인/개인 데이터 동기화/공식팀 실시간 구독/편집자 관리
+- `firebase-config.js`: 연결한 Firebase 웹 프로젝트 설정
+- `firestore.rules`: Firebase 콘솔에 수동 게시할 보안 규칙 (**UID 교체 필수**)
+- `.nojekyll`: GitHub Pages 정적 배포용

@@ -1,9 +1,76 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // v7 개인용 백업을 유지합니다. 각 계정 본인만 접근할 수 있습니다.
     match /hilfuStates/{userId} {
-      // 본인 Google 로그인 계정 UID로 만든 문서만 읽기/수정 가능
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 최초 배포 전, 감독이 v8 화면에서 확인한 Firebase Auth UID로 변경하세요.
+    function isOwner() {
+      return request.auth != null
+        && request.auth.uid == 'PASTE_OWNER_UID_HERE';
+    }
+    function verifiedEmail() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email is string;
+    }
+    function isInvitedEditor() {
+      return verifiedEmail()
+        && exists(/databases/$(database)/documents/hilfuTeamAccess/official)
+        && request.auth.token.email in get(/databases/$(database)/documents/hilfuTeamAccess/official).data.editorEmails;
+    }
+    function validTeamDoc() {
+      return request.resource.data.keys().hasAll(['ownerUid', 'state', 'revision', 'version', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'state', 'revision', 'version', 'updatedAt'])
+        && request.resource.data.ownerUid is string
+        && request.resource.data.state is map
+        && request.resource.data.revision is int
+        && request.resource.data.version is int;
+    }
+    match /hilfuTeams/{teamId} {
+      // Google 로그인 회원은 공식 팀 보드를 읽을 수 있습니다. 별도 팀원 인증은 아직 없습니다.
+      allow get: if teamId == 'official' && request.auth != null;
+      allow list: if false;
+      allow create: if teamId == 'official'
+        && isOwner()
+        && validTeamDoc()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.revision == 1;
+      allow update: if teamId == 'official'
+        && (isOwner() || isInvitedEditor())
+        && validTeamDoc()
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['state', 'revision', 'version', 'updatedAt']);
+      allow delete: if false;
+    }
+    match /hilfuTeamAccess/{teamId} {
+      // 이메일 허용목록은 감독과 초대된 편집자만 읽을 수 있습니다.
+      // 자기 자신의 ACL get에서 다시 get()을 호출하지 않도록 resource.data 사용.
+      allow get: if teamId == 'official'
+        && (isOwner() || (verifiedEmail()
+            && request.auth.token.email in resource.data.editorEmails));
+      allow list: if false;
+      allow create: if teamId == 'official'
+        && isOwner()
+        && request.resource.data.keys().hasAll(['ownerUid', 'editorEmails', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['ownerUid', 'editorEmails', 'updatedAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.editorEmails is list
+        && request.resource.data.editorEmails.size() <= 20;
+      allow update: if teamId == 'official'
+        && isOwner()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'editorEmails', 'updatedAt'])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.editorEmails is list
+        && request.resource.data.editorEmails.size() <= 20
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['editorEmails', 'updatedAt']);
+      allow delete: if false;
     }
     match /{document=**} {
       allow read, write: if false;

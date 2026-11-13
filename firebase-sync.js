@@ -1,4 +1,4 @@
-// HILFU FC v8.3 - 익명 공식 보드 열람 + Google 로그인 감독/코치 편집
+// HILFU FC v8.4 - 공개 열람, 경기 이력, 10개 순환 자동 백업, 편집자 복원
 // Firebase 프로젝트의 공개 web config는 firebase-config.js에 있습니다.
 const $ = id => document.getElementById(id);
 const d = $('syncDialog');
@@ -194,6 +194,8 @@ const TEAM_ID='official';
 let teamUser=null,teamRef=null,aclRef=null,teamActive=false,teamRole='viewer';
 let teamUnsub=null,aclUnsub=null,aclEmails=[],teamKnown=null,teamRevision=0;
 let teamLastSig=null,teamDirty=false,teamWriting=false,teamTimer=null,teamConflict=false;
+let historyView=null;
+const historyDialog=$('matchHistoryDialog'),newMatchDialog=$('matchNewDialog');
 const teamStatusEl=$('teamStatus');
 const setTeamStatus=(message)=>{
   teamStatusEl.textContent=message;
@@ -216,9 +218,9 @@ function setTeamButtons(){
   $('teamInviteEmail').disabled=teamRole!=='owner';
   $('teamInviteBtn').disabled=teamRole!=='owner';
   const transferTools=$('teamTransferTools');
-  transferTools.hidden=!signed;
-  $('teamCopyToPersonal').hidden=!teamActive;
-  $('teamCopyToOfficial').hidden=teamActive;
+  transferTools.hidden=!signed||Boolean(historyView);
+  $('teamCopyToPersonal').hidden=!teamActive||Boolean(historyView);
+  $('teamCopyToOfficial').hidden=teamActive||Boolean(historyView);
   $('teamCopyToOfficial').disabled=!active || localDirty || writeRunning || !choosePanel.hidden;
 }
 function renderEditors(){
@@ -274,7 +276,7 @@ async function checkTeamRole(){
       }
     }catch{teamRole='viewer';}
   }
-  if(teamActive)window.HILFU_APP.setTeamEditable(teamRole==='owner'||teamRole==='editor');
+  if(teamActive&&!historyView)window.HILFU_APP.setTeamEditable(teamRole==='owner'||teamRole==='editor');
   setTeamButtons();
 }
 function revokeLocalEdit(){
@@ -297,7 +299,7 @@ function snapshotTeam(snap){
     return;
   }
   teamKnown=raw;teamRevision=nextRevision;teamLastSig=signature;
-  if(teamDirty||teamWriting)return;
+  if(teamDirty||teamWriting||historyView)return;
   window.HILFU_APP.enterTeamData(newData,teamRole==='owner'||teamRole==='editor');
   setTeamStatus(`공식 팀 보드 연결됨 · ${teamRole==='owner'?'감독':teamRole==='editor'?'편집자':'열람 전용'} · 실시간 갱신`);
 }
@@ -307,7 +309,10 @@ async function openOfficial({auto=false}={}){
     if(!auto)d.showModal();
     return false;
   }
-  if(teamActive){if(!auto&&d.open)d.close();return true;}
+  if(teamActive){
+    if(historyView)await returnCurrentMatch();
+    if(!auto&&d.open)d.close();return true;
+  }
   try{
     setTeamStatus('공식 팀 데이터를 확인하는 중…');
     teamRef=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);aclRef=firestoreFns.doc(db,'hilfuTeamAccess',TEAM_ID);
@@ -342,7 +347,7 @@ async function openOfficial({auto=false}={}){
 }
 async function leaveOfficial(){
   if(!teamActive)return;
-  clearTeamWatchers();teamActive=false;teamRole='viewer';
+  clearTeamWatchers();teamActive=false;teamRole='viewer';historyView=null;
   // Keep the last known official snapshot only as a UI hint; every write rereads from the server.
   window.HILFU_APP.leaveTeamData();resumePersonal();setTeamButtons();
   setTeamStatus('개인 보드로 돌아왔습니다.');
@@ -384,13 +389,13 @@ function removeEditor(email){
   setEditors(aclEmails.filter(x=>x!==email));
 }
 function triggerTeamSave(data){
-  if(!teamActive||!['owner','editor'].includes(teamRole)||teamConflict)return;
+  if(!teamActive||historyView||!['owner','editor'].includes(teamRole)||teamConflict)return;
   if(fingerprint(data)===teamLastSig && !teamDirty)return;
   teamDirty=true;clearTeamTimers();teamTimer=setTimeout(flushOfficial,1100);
   setTeamStatus('공식 팀 변경사항 저장 대기 중…');
 }
 async function flushOfficial(){
-  if(!teamActive||!teamDirty||teamWriting||teamConflict||!['owner','editor'].includes(teamRole))return;
+  if(!teamActive||historyView||!teamDirty||teamWriting||teamConflict||!['owner','editor'].includes(teamRole))return;
   clearTeamTimers();teamWriting=true;
   setTeamStatus('공식 팀 변경사항 서버 저장 중…');
   const state=window.HILFU_APP.getData(),sig=fingerprint(state),expected=teamRevision;
@@ -398,6 +403,8 @@ async function flushOfficial(){
     await firestoreFns.runTransaction(db,async transaction=>{
       const snap=await transaction.get(teamRef);
       if(!snap.exists()||snap.data().revision!==expected)throw Error('동시 편집 충돌');
+      const backupRef=firestoreFns.doc(db,'hilfuTeamBackups','slot'+(expected%10));
+      transaction.set(backupRef,{state:snap.data().state,sourceRevision:expected,reason:'공식 보드 수정 전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
       transaction.update(teamRef,{state,revision:expected+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
     });
     teamRevision=expected+1;teamLastSig=sig;
@@ -480,6 +487,7 @@ async function copyPersonalToOfficial(){
     await firestoreFns.runTransaction(db,async tx=>{
       const current=await tx.get(ref);
       if(!current.exists()||Number(current.data().revision)!==rev)throw Error('다른 편집자가 방금 수정했습니다. 공식 팀 보드를 확인하고 다시 시도하세요.');
+      tx.set(firestoreFns.doc(db,'hilfuTeamBackups','slot'+(rev%10)),{state:current.data().state,sourceRevision:rev,reason:'개인 보드 반영 전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
       tx.update(ref,{state:data,revision:rev+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
     });
     setTeamStatus('✅ 개인 보드를 공식 팀 보드에 반영했습니다. 다른 팀원의 화면에도 전달됩니다.');

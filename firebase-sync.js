@@ -400,22 +400,37 @@ function triggerTeamSave(data){
   teamDirty=true;clearTeamTimers();teamTimer=setTimeout(flushOfficial,1100);
   setTeamStatus('공식 팀 변경사항 저장 대기 중…');
 }
+async function commitTeamChangeWithBackup(ref,expected,state,reason){
+  const run=async includeBackup=>firestoreFns.runTransaction(db,async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists()||Number(snap.data().revision)!==expected)throw Error('동시 편집 충돌');
+    if(includeBackup){
+      tx.set(firestoreFns.doc(db,'hilfuTeamBackups','slot'+(expected%10)),
+        {state:snap.data().state,sourceRevision:expected,reason,actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
+    }
+    tx.update(ref,{state,revision:expected+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+  });
+  try{
+    await run(true);
+    return true;
+  }catch(error){
+    // 콘솔에 새 규칙이 아직 게시되지 않았을 때에도 기존 공식 저장은 유지합니다.
+    // 백업 없이 성공한 경우 명시적으로 안내합니다. 권한 없는 수정은 기존 보안 규칙이 차단합니다.
+    if(error.code!=='permission-denied'&&!/Missing or insufficient permissions/i.test(error.message||''))throw error;
+    await run(false);
+    return false;
+  }
+}
 async function flushOfficial(){
   if(!teamActive||historyView||!teamDirty||teamWriting||teamConflict||!['owner','editor'].includes(teamRole))return;
   clearTeamTimers();teamWriting=true;
   setTeamStatus('공식 팀 변경사항 서버 저장 중…');
   const state=window.HILFU_APP.getData(),sig=fingerprint(state),expected=teamRevision;
   try{
-    await firestoreFns.runTransaction(db,async transaction=>{
-      const snap=await transaction.get(teamRef);
-      if(!snap.exists()||snap.data().revision!==expected)throw Error('동시 편집 충돌');
-      const backupRef=firestoreFns.doc(db,'hilfuTeamBackups','slot'+(expected%10));
-      transaction.set(backupRef,{state:snap.data().state,sourceRevision:expected,reason:'공식 보드 수정 전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
-      transaction.update(teamRef,{state,revision:expected+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
-    });
+    const backedUp=await commitTeamChangeWithBackup(teamRef,expected,state,'공식 보드 수정 전');
     teamRevision=expected+1;teamLastSig=sig;
     teamDirty=fingerprint(window.HILFU_APP.getData())!==sig;
-    setTeamStatus(teamDirty?'추가 변경사항 저장 대기 중…':'공식 팀 보드 저장 완료 · 다른 팀원에게 실시간 반영됨');
+    setTeamStatus(teamDirty?'추가 변경사항 저장 대기 중…':backedUp?'공식 팀 보드 저장 완료 · 자동 백업됨 · 실시간 반영됨':'공식 팀 보드 저장 완료 · ⚠ 자동 백업 비활성: Firebase 규칙 v8.4 게시 필요');
   }catch(error){
     if(/동시 편집 충돌|ABORTED|permission-denied/i.test(error.message||'')){
       teamConflict=true;setTeamStatus('저장 충돌 또는 권한 없음: '+error.message+' · 데이터를 백업한 뒤 공식 보드를 다시 여세요.');
@@ -490,13 +505,8 @@ async function copyPersonalToOfficial(){
     }
     const data=JSON.parse(JSON.stringify(getLocal()));
     // Transaction CAS: refuse to overwrite if another team editor committed meanwhile.
-    await firestoreFns.runTransaction(db,async tx=>{
-      const current=await tx.get(ref);
-      if(!current.exists()||Number(current.data().revision)!==rev)throw Error('다른 편집자가 방금 수정했습니다. 공식 팀 보드를 확인하고 다시 시도하세요.');
-      tx.set(firestoreFns.doc(db,'hilfuTeamBackups','slot'+(rev%10)),{state:current.data().state,sourceRevision:rev,reason:'개인 보드 반영 전',actorUid:teamUser.uid,createdAt:firestoreFns.serverTimestamp()});
-      tx.update(ref,{state:data,revision:rev+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
-    });
-    setTeamStatus('✅ 개인 보드를 공식 팀 보드에 반영했습니다. 다른 팀원의 화면에도 전달됩니다.');
+    const backedUp=await commitTeamChangeWithBackup(ref,rev,data,'개인 보드 반영 전');
+    setTeamStatus(backedUp?'✅ 개인 보드를 공식 팀 보드에 반영했습니다. 이전 버전도 자동 백업됐습니다.':'✅ 개인 보드를 공식 팀 보드에 반영했습니다. ⚠ 자동 백업은 Firebase 규칙 게시 전이라 비활성입니다.');
     await openOfficial();
   }catch(error){setTeamStatus('공식 반영 실패: '+error.message+' · 감독/편집자 권한과 네트워크 상태를 확인하세요.');d.showModal();}
   finally{button.disabled=false;setTeamButtons();}

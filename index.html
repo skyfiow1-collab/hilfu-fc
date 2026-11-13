@@ -221,6 +221,28 @@
 <dialog id="editor"><form id="editorForm" class="dlgbody"><div class="dlghead"><div><h3 id="editorTitle">선수 추가</h3><p>가능 포지션을 복수 선택하고 주 포지션을 지정하세요.</p></div><button type="button" class="close" id="closeEditor" aria-label="닫기">×</button></div><label class="field"><span>선수 이름 *</span><input id="editName" required maxlength="20" placeholder="예: 선수01"></label><fieldset class="role-fieldset"><legend>가능 포지션 (복수 선택)</legend><div id="editRoleChoices" class="role-picker"></div></fieldset>
 <label class="field"><span>주 포지션 (선택한 포지션 중 우선)</span><select id="editPrimaryRole" class="role-select"><option value="">포지션을 먼저 선택하세요</option></select></label>
 <label class="checkline gk-line"><input type="checkbox" id="editGKEligible"> GK 로테이션 가능</label><label class="field"><span>특징 메모</span><input id="editMemo" maxlength="120" placeholder="예: 활동량 좋음, 양발"></label><div class="dlgactions"><button class="btn danger" type="button" id="deletePlayer">선수 삭제</button><button class="btn primary" type="submit">저장하기</button></div></form></dialog>
+<dialog id="quarterScoreDialog" class="quarter-score-dialog" aria-labelledby="quarterScoreDialogTitle">
+  <form id="quarterScoreForm" class="dlgbody" novalidate>
+    <div class="dlghead">
+      <div><h3 id="quarterScoreDialogTitle">⚽ 1Q 득점 입력</h3><p>선택한 쿼터에서 넣은 골을 입력하세요.</p></div>
+      <button type="button" class="close" id="closeQuarterScoreDialog" aria-label="닫기">×</button>
+    </div>
+    <div class="quarter-score-dialog-grid">
+      <label>우리 팀
+        <input id="quarterEditUs" type="number" min="0" max="99" step="1" inputmode="numeric" aria-label="해당 쿼터 우리 팀 득점" placeholder="—" autocomplete="off">
+      </label>
+      <span class="colon">:</span>
+      <label>상대 팀
+        <input id="quarterEditThem" type="number" min="0" max="99" step="1" inputmode="numeric" aria-label="해당 쿼터 상대 팀 득점" placeholder="—" autocomplete="off">
+      </label>
+    </div>
+    <p class="score-help">0골이면 0을 입력하고, 아직 기록하지 않았다면 빈칸으로 두세요.</p>
+    <div class="dlgactions">
+      <button type="button" class="btn" id="cancelQuarterScore">취소</button>
+      <button type="submit" class="btn primary" id="saveQuarterScore">점수 저장</button>
+    </div>
+  </form>
+</dialog>
 <script>
 (() => {
   'use strict';
@@ -1200,28 +1222,7 @@
 
 </script>
 
-<dialog id="quarterScoreDialog" class="quarter-score-dialog" aria-labelledby="quarterScoreDialogTitle">
-  <form id="quarterScoreForm" class="dlgbody" novalidate>
-    <div class="dlghead">
-      <div><h3 id="quarterScoreDialogTitle">⚽ 1Q 득점 입력</h3><p>선택한 쿼터에서 넣은 골을 입력하세요.</p></div>
-      <button type="button" class="close" id="closeQuarterScoreDialog" aria-label="닫기">×</button>
-    </div>
-    <div class="quarter-score-dialog-grid">
-      <label>우리 팀
-        <input id="quarterEditUs" type="number" min="0" max="99" step="1" inputmode="numeric" aria-label="해당 쿼터 우리 팀 득점" placeholder="—" autocomplete="off">
-      </label>
-      <span class="colon">:</span>
-      <label>상대 팀
-        <input id="quarterEditThem" type="number" min="0" max="99" step="1" inputmode="numeric" aria-label="해당 쿼터 상대 팀 득점" placeholder="—" autocomplete="off">
-      </label>
-    </div>
-    <p class="score-help">0골이면 0을 입력하고, 아직 기록하지 않았다면 빈칸으로 두세요.</p>
-    <div class="dlgactions">
-      <button type="button" class="btn" id="cancelQuarterScore">취소</button>
-      <button type="submit" class="btn primary" id="saveQuarterScore">점수 저장</button>
-    </div>
-  </form>
-</dialog>
+
 <dialog id="matchHistoryDialog">
   <div class="dlgbody">
     <div class="dlghead"><div><h3>📅 경기 기록 · 자동 백업</h3><p>이전 경기는 누구나 열람할 수 있고, 복원은 감독·승인된 코치만 가능합니다.</p></div><button type="button" class="close" id="closeMatchHistory" aria-label="닫기">×</button></div>

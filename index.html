@@ -562,20 +562,37 @@
   function renderScore(){
     state.score=cleanScore(state.score);
     const isFinal=state.score.mode==='final';
-    document.querySelectorAll('[data-score-mode]').forEach(el=>el.classList.toggle('active',el.dataset.scoreMode===state.score.mode));
+    document.querySelectorAll('[data-score-mode]').forEach(el=>{
+      el.classList.toggle('active',el.dataset.scoreMode===state.score.mode);
+      el.setAttribute('aria-pressed',String(el.dataset.scoreMode===state.score.mode));
+    });
+    $('scoreEditor').hidden=!isFinal;
     $('scoreHelp').textContent=isFinal
-      ?'최종 경기 결과만 입력합니다. 기존 쿼터별 기록은 유지되며 해당 모드로 돌아가면 다시 확인할 수 있습니다.'
-      :'각 쿼터에서 기록한 득점만 입력하세요. 빈칸은 미입력이고 0골은 0으로 입력하세요. 5Q 모두 입력하면 최종 스코어로 표시됩니다.';
-    const rows=isFinal?[{key:'final',label:'최종 점수',score:state.score.final}]:
-      state.score.quarters.map((q,i)=>({key:String(i),label:(i+1)+'Q',score:q}));
-    const heading='<div class="score-grid-row score-headings"><span>구분</span><span>우리 팀</span><span></span><span>상대 팀</span></div>';
-    $('scoreEditor').innerHTML=heading+rows.map(row=>
-      '<div class="score-grid-row"><span class="score-q">'+row.label+'</span>'+
-      '<label><input type="number" min="0" max="99" step="1" inputmode="numeric" data-score-input="'+row.key+'" data-score-side="us" aria-label="'+row.label+' 우리 팀 골" value="'+(row.score.us??'')+'" placeholder="—"></label>'+
-      '<span class="colon">:</span>'+
-      '<label><input type="number" min="0" max="99" step="1" inputmode="numeric" data-score-input="'+row.key+'" data-score-side="them" aria-label="'+row.label+' 상대 팀 골" value="'+(row.score.them??'')+'" placeholder="—"></label></div>'
+      ?'전체 점수는 직접 입력한 결과로 표시됩니다. 라인업에서 입력한 쿼터별 점수는 별도로 유지돼요.'
+      :'각 쿼터별 득점은 라인업 페이지에서 해당 쿼터를 선택해 입력하세요. 입력한 득점이 전체 점수로 자동 합산됩니다.';
+    for(const input of $('scoreEditor').querySelectorAll('[data-score-input="final"]')){
+      const value=state.score.final[input.dataset.scoreSide];
+      input.value=value??'';
+    }
+    const preview=$('scoreQuarterPreview');
+    preview.innerHTML=state.score.quarters.map((q,i)=>
+      '<div class="item"><b>'+(i+1)+'Q</b><span>'+(q.us??'—')+' : '+(q.them??'—')+'</span></div>'
     ).join('');
     updateScoreDisplay();
+  }
+  function renderQuarterScore(){
+    state.score=cleanScore(state.score);
+    const qi=state.quarter,goals=state.score.quarters[qi];
+    $('quarterScoreTitle').textContent=(qi+1)+'Q 득점';
+    $('quarterScoreRowLabel').textContent=(qi+1)+'Q';
+    $('quarterScoreChip').textContent=goals.us===null&&goals.them===null?'미입력':(goals.us??'—')+' : '+(goals.them??'—');
+    $('quarterScoreNote').textContent=state.score.mode==='quarters'
+      ?'이 쿼터의 득점은 위 전체 점수판에 자동 합산됩니다.'
+      :'이 쿼터 기록은 보존되지만, 위 전체 점수판은 직접 입력한 최종 점수를 표시합니다.';
+    for(const input of $('quarterScoreEditor').querySelectorAll('[data-score-input="quarter"]')){
+      input.value=goals[input.dataset.scoreSide]??'';
+      input.setAttribute('aria-label',(qi+1)+'Q '+(input.dataset.scoreSide==='us'?'우리 팀':'상대 팀')+' 골');
+    }
   }
   $('matchScorePanel').addEventListener('click',e=>{
     const target=e.target.closest('[data-score-mode]');
@@ -585,22 +602,26 @@
     state.score.mode=target.dataset.scoreMode;
     save();renderScore();applyViewPermission();
   });
-  $('scoreEditor').addEventListener('change',e=>{
+  function onScoreChange(e){
     const target=e.target.closest('[data-score-input]');if(!target)return;
     if(dataMode==='team'&&!teamCanEdit)return;
     if(target.value!==''&&(!target.validity.valid||cleanGoal(target.value)===null)){
       alert('득점은 0부터 99까지의 정수로 입력하세요.');
-      renderScore();applyViewPermission();return;
+      renderScore();renderQuarterScore();applyViewPermission();return;
     }
-    const point=cleanGoal(target.value);
-    const side=target.dataset.scoreSide;
+    const goal=cleanGoal(target.value),side=target.dataset.scoreSide;
     if(!['us','them'].includes(side))return;
-    const destination=target.dataset.scoreInput==='final'?state.score.final:state.score.quarters[Number(target.dataset.scoreInput)];
-    if(!destination||destination[side]===point)return;
-    destination[side]=point;save();updateScoreDisplay();
-  });
+    const destination=target.dataset.scoreInput==='final'?state.score.final:state.score.quarters[state.quarter];
+    if(destination[side]===goal)return;
+    destination[side]=goal;
+    save();
+    renderScore();renderQuarterScore();applyViewPermission();
+  }
+  $('scoreEditor').addEventListener('change',onScoreChange);
+  $('quarterScoreEditor').addEventListener('change',onScoreChange);
   function render(){const c=counts();
     renderScore();
+    renderQuarterScore();
     $('totalPlayer').textContent=state.players.length;
     $('activePlayer').textContent=state.players.filter(p=>p.active).length;
     $('totalMin').textContent=Object.values(c).reduce((n,x)=>n+x.field,0);

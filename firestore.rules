@@ -72,6 +72,40 @@ service cloud.firestore {
             .hasOnly(['editorEmails', 'updatedAt']);
       allow delete: if false;
     }
+    // v8.4 경기 이력: 공식 보드에서 보관된 경기 전체를 로그인 없이 열람.
+    // 새 기록 생성은 감독 또는 승인된 코치만 가능하며 수정/삭제는 금지합니다.
+    match /hilfuMatchArchive/{matchId} {
+      allow get, list: if true;
+      allow create: if (isOwner() || isInvitedEditor())
+        && request.resource.data.keys().hasAll(['state', 'title', 'date', 'sourceRevision', 'createdAt', 'actorUid'])
+        && request.resource.data.keys().hasOnly(['state', 'title', 'date', 'sourceRevision', 'createdAt', 'actorUid'])
+        && request.resource.data.state is map
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.date is string
+        && request.resource.data.sourceRevision is int
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // v8.4 공식 수정 전 백업: 최근 10개 슬롯을 순환 저장, 복원은 승인 편집자만.
+    // 비로그인 선수는 백업 내용 및 편집자 관리 문서를 읽을 수 없습니다.
+    match /hilfuTeamBackups/{backupId} {
+      allow get, list: if isOwner() || isInvitedEditor();
+      allow create, update: if (isOwner() || isInvitedEditor())
+        && backupId.matches('slot[0-9]')
+        && request.resource.data.keys().hasAll(['state', 'sourceRevision', 'reason', 'actorUid', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['state', 'sourceRevision', 'reason', 'actorUid', 'createdAt'])
+        && request.resource.data.state is map
+        && request.resource.data.sourceRevision is int
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 80
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

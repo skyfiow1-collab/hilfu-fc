@@ -227,7 +227,9 @@ function setTeamButtons(){
   transferTools.hidden=!signed||Boolean(historyView);
   $('teamCopyToPersonal').hidden=!teamActive||Boolean(historyView);
   $('teamCopyToOfficial').hidden=teamActive||Boolean(historyView);
-  $('teamCopyToOfficial').disabled=!active || localDirty || writeRunning || !choosePanel.hidden;
+  // 개인 보드의 로컬 데이터 자체를 복사하므로 클라우드 저장 대기 여부와 무관하게 사용 가능.
+  // 단, 개인/클라우드 충돌 선택이 열려 있을 때는 어느 데이터인지 먼저 명확히 결정합니다.
+  $('teamCopyToOfficial').disabled=!signed || !db || !choosePanel.hidden;
 }
 function renderEditors(){
   const holder=$('teamEditorList');
@@ -440,76 +442,90 @@ async function flushOfficial(){
     if(teamDirty&&!teamConflict&&teamActive)teamTimer=setTimeout(flushOfficial,2200);
   }
 }
-// === v8.1 개인 ↔ 공식 보드 복사 (자동 쌍방 동기화 아님) ===
+// === v8.15 개인 ↔ 공식 보드 일회성 복사 ===
+// 복사 시 백업/복원 스냅샷은 생성하지 않습니다. 일반 공식 수정·새 경기의 백업은 그대로 유지합니다.
 const PERSONAL_KEY='hilfu-fc-app-v1';
-function downloadBoardBackup(data,tag){
-  if(!validTeamData(data))return;
-  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-  const blob=new Blob([JSON.stringify({version:8,exportedAt:new Date().toISOString(),...data},null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`hilfu_fc_${tag}_${stamp}.json`;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),10000);
-}
-function storedPersonal(){try{
-  const data=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'null');return validTeamData(data)?data:null;
-}catch{return null;}}
 async function copyOfficialToPersonal(){
   if(!teamActive||!teamUser||!teamRef)return;
-  if(teamDirty||teamWriting||teamConflict){setTeamStatus('공식 보드에서 저장되지 않은 변경 또는 충돌이 있습니다. 저장 상태를 먼저 확인하세요.');return;}
-  const question='공식 보드 전체(선수·참석·5쿼터·전술)를 내 개인 보드로 복사할까요?\n\n내 개인 보드의 기존 내용(이 기기 + 개인 Firebase)이 교체됩니다. 공식 보드는 바뀌지 않습니다. 기존 개인 데이터는 JSON으로 백업할 수 있습니다.';
-  if(!confirm(question))return;
+  if(teamDirty||teamWriting||teamConflict){
+    setTeamStatus('공식 보드에 저장 대기 중인 변경이나 충돌이 있습니다. 먼저 저장 상태를 확인하세요.');return;
+  }
+  if(!confirm('최신 공식 보드 전체(선수·참석·5쿼터·전술·스코어)를 내 개인 보드로 복사할까요?\\n\\n개인 기기 데이터와 개인 Firebase의 기존 내용이 교체됩니다. 공식 보드는 그대로 유지됩니다. 복사 전 백업은 자동 생성되지 않습니다.'))return;
   const button=$('teamCopyToPersonal');button.disabled=true;
   try{
-    setTeamStatus('최신 공식 데이터와 개인 클라우드 데이터를 확인하는 중…');
+    setTeamStatus('최신 공식 팀 보드를 확인하고 개인 보드에 복사하는 중…');
     const latest=await firestoreFns.getDocFromServer(teamRef);
     if(!latest.exists()||!validTeamData(latest.data().state))throw Error('공식 데이터가 없습니다.');
-    if(Number(latest.data().revision)!==teamRevision)throw Error('공식 보드가 다른 기기에서 변경됐습니다. 보드를 새로 연 뒤 다시 진행하세요.');
+    if(Number(latest.data().revision)!==teamRevision)throw Error('다른 기기에서 공식 보드가 변경됐습니다. 공식 보드를 다시 연 뒤 복사하세요.');
     const personalRef=firestoreFns.doc(db,'hilfuStates',teamUser.uid);
-    const personalSnapshot=await firestoreFns.getDocFromServer(personalRef);
-    const oldRemote=personalSnapshot.exists()?personalSnapshot.data()?.state:null;
-    const oldLocal=storedPersonal();
-    // Backup old personal data before changing it. Both are independent, importable JSON files.
-    if(validTeamData(oldLocal))downloadBoardBackup(oldLocal,'old_personal_device_backup');
-    if(validTeamData(oldRemote)&&fingerprint(oldRemote)!==fingerprint(oldLocal))downloadBoardBackup(oldRemote,'old_personal_cloud_backup');
-    if(!confirm('기존 개인 보드 백업을 확인했나요? 이제 공식 보드 내용을 개인 Firebase와 이 기기 개인 보드에 복사합니다. 계속할까요?')){
-      setTeamStatus('복사를 취소했습니다. 기존 데이터는 변경되지 않았습니다.');return;
-    }
     const copy=JSON.parse(JSON.stringify(latest.data().state));
+    // 개인 클라우드 저장에 성공한 뒤 로컬 개인 보드도 동일한 상태로 변경합니다.
     await firestoreFns.setDoc(personalRef,{state:copy,version:8,updatedAt:firestoreFns.serverTimestamp()});
-    const localShell=oldLocal||{};
-    localStorage.setItem(PERSONAL_KEY,JSON.stringify({...localShell,...copy}));
+    const previousPersonal=(()=>{try{return JSON.parse(localStorage.getItem(PERSONAL_KEY)||'{}')||{};}catch{return {};}})();
+    localStorage.setItem(PERSONAL_KEY,JSON.stringify({...previousPersonal,...copy}));
     localStorage.setItem(syncedKey(teamUser.uid),fingerprint(copy));
     await leaveOfficial();
-    setTeamStatus('✅ 공식 팀 보드를 내 개인 보드와 개인 클라우드로 복사했습니다. 공식 보드에는 변화가 없습니다.');
-    d.showModal();
-  }catch(error){setTeamStatus('복사 실패: '+error.message+' · 원본 데이터는 유지되는지 확인하세요.');}
-  finally{button.disabled=false;setTeamButtons();}
+    setTeamStatus('✅ 공식 보드를 내 개인 보드로 복사했습니다. 공식 보드는 변경되지 않았습니다.');
+    if(!d.open)d.showModal();
+  }catch(error){
+    setTeamStatus('공식 → 개인 복사 실패: '+error.message+' · 개인 클라우드 및 저장 상태를 확인하세요.');
+  }finally{
+    button.disabled=false;setTeamButtons();
+  }
+}
+async function commitOfficialCopyWithoutBackup(ref,expected,state){
+  // 공식 변경사항과 revision 확인을 한 거래로 묶고 백업 컬렉션은 건드리지 않습니다.
+  await firestoreFns.runTransaction(db,async tx=>{
+    const latest=await tx.get(ref);
+    if(!latest.exists()||Number(latest.data().revision)!==expected)throw Error('동시 편집 충돌: 다른 코치가 공식 보드를 수정했습니다. 최신 내용을 다시 확인하세요.');
+    tx.update(ref,{state,revision:expected+1,version:8,updatedAt:firestoreFns.serverTimestamp()});
+  });
 }
 async function copyPersonalToOfficial(){
-  if(teamActive||!teamUser||!db)return;
-  if(!syncReady()||localDirty||writeRunning||!choosePanel.hidden){
-    setTeamStatus('먼저 개인 보드에서 클라우드/이 기기 데이터 선택을 완료하고 개인 동기화가 저장된 상태인지 확인하세요.');return;
+  if(teamActive||!teamUser||!db||!firestoreFns)return;
+  // 개인 동기화가 아직 저장 중이어도 이 기기 개인 보드의 현재 내용을 직접 복사할 수 있습니다.
+  // 다만 서로 다른 데이터의 선택창이 열려 있다면 우선 어느 쪽이 최신인지 결정해야 합니다.
+  if(!choosePanel.hidden){
+    setTeamStatus('개인 데이터가 클라우드와 달라 선택을 기다리고 있습니다. 먼저 가져오기/올리기 중 하나를 선택하세요.');if(!d.open)d.showModal();return;
   }
-  const question='개인 보드 전체를 공식 팀 보드로 반영할까요?\n\n기존 공식 선수·참석·5쿼터·전술 정보가 모두 교체되고 팀원에게 즉시 공유됩니다. 감독/지정 편집자만 가능하며 자동 반영이 아닌 명시적 일회성 작업입니다.';
-  if(!confirm(question))return;
+  const data=window.HILFU_APP.getData();
+  if(!validTeamData(data)){setTeamStatus('개인 보드에 복사할 선수·라인업 데이터가 없습니다.');return;}
   const button=$('teamCopyToOfficial');button.disabled=true;
   try{
-    setTeamStatus('기존 공식 데이터를 확인하고 백업 준비 중…');
+    setTeamStatus('공식 보드 및 편집 권한을 확인하는 중…');
     const ref=firestoreFns.doc(db,'hilfuTeams',TEAM_ID);
-    const snap=await firestoreFns.getDocFromServer(ref);
-    if(!snap.exists()||!validTeamData(snap.data()?.state))throw Error('공식 팀 보드가 없습니다. 감독이 먼저 생성해야 합니다.');
-    const old=snap.data(),rev=Number(old.revision)||0;
-    downloadBoardBackup(old.state,'old_official_board_backup');
-    if(!confirm(`기존 공식 팀 보드(revision ${rev})의 백업을 확인했나요? 개인 보드를 공식 자료로 교체할까요?`)){
-      setTeamStatus('공식 보드 변경을 취소했습니다.');return;
+    const latest=await firestoreFns.getDocFromServer(ref);
+    if(!latest.exists()||!validTeamData(latest.data()?.state))throw Error('공식 팀 보드가 없습니다. 먼저 공식 보드를 생성하세요.');
+    const raw=latest.data(),rev=Number(raw.revision)||0;
+    // 공식 보드에서 개인 보드로 돌아와도 teamRole이 viewer로 변경되므로 서버 데이터로 권한을 확인합니다.
+    if(raw.ownerUid!==teamUser.uid){
+      const accessRef=firestoreFns.doc(db,'hilfuTeamAccess',TEAM_ID);
+      let granted=false;
+      try{
+        const acl=await firestoreFns.getDocFromServer(accessRef);
+        granted=Boolean(teamUser.emailVerified)&&Array.isArray(acl.data()?.editorEmails)
+          &&acl.data().editorEmails.includes((teamUser.email||'').toLowerCase());
+      }catch{}
+      if(!granted)throw Error('현재 Google 계정에 공식 보드 편집 권한이 없습니다. 감독 또는 승인된 코치 계정으로 로그인하세요.');
     }
-    const data=JSON.parse(JSON.stringify(getLocal()));
-    // Transaction CAS: refuse to overwrite if another team editor committed meanwhile.
-    const backedUp=await commitTeamChangeWithBackup(ref,rev,data,'개인 보드 반영 전');
-    setTeamStatus(backedUp?'✅ 개인 보드를 공식 팀 보드에 반영했습니다. 이전 버전도 자동 백업됐습니다.':'✅ 개인 보드를 공식 팀 보드에 반영했습니다. ⚠ 자동 백업은 Firebase 규칙 게시 전이라 비활성입니다.');
-    await openOfficial();
-  }catch(error){setTeamStatus('공식 반영 실패: '+error.message+' · 감독/편집자 권한과 네트워크 상태를 확인하세요.');d.showModal();}
-  finally{button.disabled=false;setTeamButtons();}
+    const copy=JSON.parse(JSON.stringify(data));
+    const question='내 개인 보드 전체를 공식 팀 보드에 반영할까요?\\n\\n공식 보드의 선수·참석·5쿼터·전술·스코어가 개인 보드 내용으로 교체되고, 팀원들에게 즉시 공유됩니다. 복사 전 자동 백업은 생성하지 않습니다.\\n\\n정말 복사하시겠습니까?';
+    if(!confirm(question)){setTeamStatus('공식 보드 복사를 취소했습니다.');return;}
+    if(!choosePanel.hidden||fingerprint(window.HILFU_APP.getData())!==fingerprint(data)){
+      throw Error('복사 확인 중 개인 보드 데이터가 변경됐습니다. 내용을 확인한 뒤 다시 실행하세요.');
+    }
+    setTeamStatus('개인 보드 내용을 공식 보드로 반영하는 중…');
+    await commitOfficialCopyWithoutBackup(ref,rev,copy);
+    const opened=await openOfficial();
+    setTeamStatus(opened
+      ?'✅ 개인 보드를 공식 팀 보드로 반영했습니다. 팀원에게 실시간 공유됩니다.'
+      :'✅ 개인 보드의 공식 반영은 완료됐습니다. 공식 보드를 다시 열어 최신 데이터를 확인하세요.');
+  }catch(error){
+    setTeamStatus('개인 → 공식 복사 실패: '+error.message);
+    if(!d.open)d.showModal();
+  }finally{
+    button.disabled=false;setTeamButtons();
+  }
 }
 window.HILFU_AUTH={
   isSignedIn:()=>Boolean(currentUser)

@@ -890,12 +890,12 @@
   }
   function tacticFor(qi=state.quarter){return state.tactics[qi];}
   // v8.11: 원래 포메이션의 간격을 유지하면서 대치 라인만 조금 가까이 표시합니다.
-  // 아래쪽(우리) +3%, 위쪽(상대) -3%로 이동하며 별도 포지션 재분류는 하지 않습니다.
+  // 아래쪽(우리) +5%, 위쪽(상대) -5%로 이동하며 별도 포지션 재분류는 하지 않습니다.
   // 기존에 저장한 직접 이동 위치는 이 기본값보다 우선합니다.
   const mirrorY = y => 105-Number(y);
   const tacticalBasePoint = (slot,side) => ({
     x:slot.x,
-    y:Math.max(8,Math.min(92,side==='home'?slot.y+3:mirrorY(slot.y)-3))
+    y:Math.max(8,Math.min(92,side==='home'?slot.y+5:mirrorY(slot.y)-5))
   });
   function tacticOwnMarker(slot){
     const q=state.lineups[state.quarter],formation=currentFormation(),base=formation.slots.find(s=>s.key===slot),t=tacticFor(),override=t.ownPositions?.[slot];

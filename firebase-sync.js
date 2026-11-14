@@ -1,4 +1,4 @@
-// HILFU FC v8.4 - 공개 열람, 경기 이력, 10개 순환 자동 백업, 편집자 복원
+// HILFU FC v8.15 - 공개 열람, 수동 복사 시 백업 생략, 공식 일반 수정 백업 및 경기 이력 유지
 // Firebase 프로젝트의 공개 web config는 firebase-config.js에 있습니다.
 const $ = id => document.getElementById(id);
 const d = $('syncDialog');
@@ -228,8 +228,8 @@ function setTeamButtons(){
   $('teamCopyToPersonal').hidden=!teamActive||Boolean(historyView);
   $('teamCopyToOfficial').hidden=teamActive||Boolean(historyView);
   // 개인 보드의 로컬 데이터 자체를 복사하므로 클라우드 저장 대기 여부와 무관하게 사용 가능.
-  // 단, 개인/클라우드 충돌 선택이 열려 있을 때는 어느 데이터인지 먼저 명확히 결정합니다.
-  $('teamCopyToOfficial').disabled=!signed || !db || !choosePanel.hidden;
+  // 개인 클라우드 충돌이 있어도 현재 이 기기에 보이는 개인 데이터를 복사할 수 있습니다.
+  $('teamCopyToOfficial').disabled=!signed || !db;
 }
 function renderEditors(){
   const holder=$('teamEditorList');
@@ -450,7 +450,7 @@ async function copyOfficialToPersonal(){
   if(teamDirty||teamWriting||teamConflict){
     setTeamStatus('공식 보드에 저장 대기 중인 변경이나 충돌이 있습니다. 먼저 저장 상태를 확인하세요.');return;
   }
-  if(!confirm('최신 공식 보드 전체(선수·참석·5쿼터·전술·스코어)를 내 개인 보드로 복사할까요?\\n\\n개인 기기 데이터와 개인 Firebase의 기존 내용이 교체됩니다. 공식 보드는 그대로 유지됩니다. 복사 전 백업은 자동 생성되지 않습니다.'))return;
+  if(!confirm('최신 공식 보드 전체(선수·참석·5쿼터·전술·스코어)를 내 개인 보드로 복사할까요?\n\n이 기기 개인 데이터와 개인 Firebase의 기존 내용이 교체됩니다. 공식 보드는 그대로 유지됩니다. 복사 전 자동 백업은 생성하지 않습니다.'))return;
   const button=$('teamCopyToPersonal');button.disabled=true;
   try{
     setTeamStatus('최신 공식 팀 보드를 확인하고 개인 보드에 복사하는 중…');
@@ -484,10 +484,7 @@ async function commitOfficialCopyWithoutBackup(ref,expected,state){
 async function copyPersonalToOfficial(){
   if(teamActive||!teamUser||!db||!firestoreFns)return;
   // 개인 동기화가 아직 저장 중이어도 이 기기 개인 보드의 현재 내용을 직접 복사할 수 있습니다.
-  // 다만 서로 다른 데이터의 선택창이 열려 있다면 우선 어느 쪽이 최신인지 결정해야 합니다.
-  if(!choosePanel.hidden){
-    setTeamStatus('개인 데이터가 클라우드와 달라 선택을 기다리고 있습니다. 먼저 가져오기/올리기 중 하나를 선택하세요.');if(!d.open)d.showModal();return;
-  }
+  // 개인 클라우드가 아직 준비되지 않았어도 현재 화면의 개인 보드 데이터만 복사합니다.
   const data=window.HILFU_APP.getData();
   if(!validTeamData(data)){setTeamStatus('개인 보드에 복사할 선수·라인업 데이터가 없습니다.');return;}
   const button=$('teamCopyToOfficial');button.disabled=true;
@@ -509,9 +506,9 @@ async function copyPersonalToOfficial(){
       if(!granted)throw Error('현재 Google 계정에 공식 보드 편집 권한이 없습니다. 감독 또는 승인된 코치 계정으로 로그인하세요.');
     }
     const copy=JSON.parse(JSON.stringify(data));
-    const question='내 개인 보드 전체를 공식 팀 보드에 반영할까요?\\n\\n공식 보드의 선수·참석·5쿼터·전술·스코어가 개인 보드 내용으로 교체되고, 팀원들에게 즉시 공유됩니다. 복사 전 자동 백업은 생성하지 않습니다.\\n\\n정말 복사하시겠습니까?';
+    const question='현재 이 기기에 표시된 개인 보드 전체를 공식 팀 보드에 반영할까요?\n\n공식 보드의 선수·참석·5쿼터·전술·스코어가 교체되고 팀원에게 즉시 공유됩니다. 개인 클라우드 데이터가 다르더라도 이 기기 화면의 내용만 복사합니다.\n\n복사 전 자동 백업은 생성하지 않습니다. 정말 복사할까요?';
     if(!confirm(question)){setTeamStatus('공식 보드 복사를 취소했습니다.');return;}
-    if(!choosePanel.hidden||fingerprint(window.HILFU_APP.getData())!==fingerprint(data)){
+    if(fingerprint(window.HILFU_APP.getData())!==fingerprint(data)){
       throw Error('복사 확인 중 개인 보드 데이터가 변경됐습니다. 내용을 확인한 뒤 다시 실행하세요.');
     }
     setTeamStatus('개인 보드 내용을 공식 보드로 반영하는 중…');

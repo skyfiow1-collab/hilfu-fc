@@ -1410,7 +1410,7 @@
   $('opponentFormationSelect').addEventListener('change',e=>{tacticFor().opponentFormation=e.target.value;tacticFor().opponentPositions={};save();render();});
 
   $('resetTacticOwnBtn').onclick=()=>{tacticFor().ownPositions={};save();render();};
-  $('resetOpponentBtn').onclick=()=>{const t=tacticFor();t.opponentPositions={};t.opponentLabels={};save();render();};
+  $('resetOpponentBtn').onclick=()=>{const t=tacticFor();t.opponentPositions={};save();render();};
   $('editRoleChoices').addEventListener('change',e=>{if(e.target.matches('[data-edit-role]'))updatePrimaryOptions();});
   $('resetPositionBtn').onclick=()=>{state.positions[state.quarter]={};save();render();};
   $('closePicker').onclick=$('cancelPicker').onclick=()=>$('picker').close();

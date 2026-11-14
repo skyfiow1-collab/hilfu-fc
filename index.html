@@ -931,6 +931,29 @@
     const t=tacticFor(),f=FORMATIONS[t.opponentFormation]||FORMATIONS['442'];
     return f.slots.map(slot=>({key:slot.key,label:slot.label,...tacticalBasePoint(slot,f,'away')}));
   }
+  // 전술판은 두 팀의 22개 말판을 함께 보여 주므로 중앙 대치 구역의 말판 겹침을 줄입니다.
+  // 저장된 수동 위치(fixed)는 절대 움직이지 않으며, 미세 조정은 그릴 때만 계산합니다.
+  const TACTIC_OFFSETS = [[0,0],[0,-4],[0,4],[0,-8],[0,8],[-5,0],[5,0],[-9,0],[9,0],[-6,-4],[6,-4],[-6,4],[6,4],[-10,-5],[10,-5],[-10,5],[10,5],[0,-12],[0,12],[-12,0],[12,0]];
+  function tacticOverlap(a,b){
+    return Math.max(0,12-Math.abs(a.x-b.x))*Math.max(0,9-Math.abs(a.y-b.y));
+  }
+  function spaceOpponentMarkers(own,opponents){
+    const placed=[];
+    for(let i=0;i<opponents.length;i++){
+      const marker=opponents[i];
+      if(marker.fixed){placed.push(marker);continue;}
+      let best=marker,bestCost=Infinity;
+      for(const [dx,dy] of TACTIC_OFFSETS){
+        const candidate={...marker,x:Math.max(8,Math.min(92,marker.x+dx)),y:Math.max(8,Math.min(92,marker.y+dy))};
+        let cost=Math.hypot(dx,dy)*0.9;
+        for(const other of [...own,...placed])cost+=tacticOverlap(candidate,other)*7;
+        for(const other of opponents.slice(i+1))cost+=tacticOverlap(candidate,other)*2;
+        if(cost<bestCost){bestCost=cost;best=candidate;}
+      }
+      placed.push(best);
+    }
+    return placed;
+  }
   function renderTactics(){
     $('tacticQuarterTabs').innerHTML=Array.from({length:5},(_,i)=>`<button class="qbtn ${state.quarter===i?'active':''}" data-q="${i}" aria-pressed="${state.quarter===i}">${i+1}Q</button>`).join('');
     const t=tacticFor(), our=currentFormation(), opp=FORMATIONS[t.opponentFormation]||FORMATIONS['442'], q=state.lineups[state.quarter];
@@ -943,7 +966,12 @@
 
     const ownMarkers = our.slots.map(s=>tacticOwnMarker(s.key)).filter(Boolean);
     const oppBase=tacticOpponentBaseSlots();
-    const oppMarkers = oppBase.map(s=>{const o=t.opponentPositions?.[s.key]||s;return {slot:s.key,x:o.x,y:o.y,label:(t.opponentLabels?.[s.key]||s.key),sub:s.key};});
+    const opponentBases=oppBase.map(s=>{
+      const custom=t.opponentPositions?.[s.key];
+      const p=custom||s;
+      return {slot:s.key,x:p.x,y:p.y,label:(t.opponentLabels?.[s.key]||s.key),sub:s.key,fixed:Boolean(custom)};
+    });
+    const oppMarkers=spaceOpponentMarkers(ownMarkers,opponentBases);
     $('tacticOwnCount').textContent=ownMarkers.filter(m=>m.filled).length+'명';
     $('tacticOppCount').textContent=oppMarkers.length+'개';
     $('tacticCount').textContent=`우리 ${ownMarkers.filter(m=>m.filled).length} · 상대 ${oppMarkers.length}`;
